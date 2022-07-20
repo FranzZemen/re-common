@@ -1,4 +1,3 @@
-// Migrate-ing to re-common
 import {ExecutionContextI} from '@franzzemen/app-utility';
 import {RuleElementInstanceReference, RuleElementModuleReference} from '../rule-element-ref/rule-element-reference';  // Do not import from index file
 

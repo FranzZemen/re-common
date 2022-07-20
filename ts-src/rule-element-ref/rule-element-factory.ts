@@ -1,4 +1,3 @@
-// Migrate-ing to re-common
 import {ExecutionContextI, loadFromModule, LoggerAdapter} from '@franzzemen/app-utility';
 import {ScopedFactory} from '../scoped-factory/scoped-factory';
 import {
