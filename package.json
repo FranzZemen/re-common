@@ -1,0 +1,19 @@
+{
+  "name": "@franzzemen/re-common",
+  "version": "0.0.1",
+  "description": "Common re elements",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FranzZemen/re-common.git"
+  },
+  "author": "Franz Zemen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/FranzZemen/re-common/issues"
+  },
+  "homepage": "https://github.com/FranzZemen/re-common#readme"
+}
