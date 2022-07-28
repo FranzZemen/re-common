@@ -1,5 +1,5 @@
 import {ExecutionContextI, loadFromModule, LoggerAdapter} from '@franzzemen/app-utility';
-import {ScopedFactory} from '../scoped-factory/scoped-factory';
+import {ScopedFactory} from '../scope/scoped-factory';
 import {
   isRuleElementModuleReference,
   RuleElementInstanceReference,

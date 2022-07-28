@@ -1,7 +1,7 @@
 import {ExecutionContextI, loadFromModule, LoggerAdapter} from '@franzzemen/app-utility';
 import {HasRefName} from '../util/has-ref-name';
 import {RuleElementInstanceReference, RuleElementModuleReference, RuleElementReference, isRuleElementModuleReference, isRuleElementInstanceReference} from '../rule-element-ref/rule-element-reference'
-import {ScopedFactory} from '../scoped-factory/scoped-factory';
+import {ScopedFactory} from '../scope/scoped-factory';
 
 
 
