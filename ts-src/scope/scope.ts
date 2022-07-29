@@ -1,10 +1,11 @@
 import {ExecutionContextI} from '@franzzemen/app-utility';
+import {Options} from '../options/options';
 import {ScopedFactory} from './scoped-factory';
 
 export class Scope extends Map<string, any> {
   public static ParentScope = 'ParentScope';
 
-  constructor(ec?: ExecutionContextI) {
+  constructor(options?: Options, ec?: ExecutionContextI) {
     super();
   }
 
