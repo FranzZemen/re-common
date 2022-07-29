@@ -1,5 +1,5 @@
 import {ExecutionContextI} from '@franzzemen/app-utility';
-import {Options} from '../options/options';
+import {Options} from './options';
 import {ScopedFactory} from './scoped-factory';
 
 export class Scope extends Map<string, any> {
