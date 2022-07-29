@@ -4,7 +4,7 @@ import {ScopedFactory} from './scoped-factory';
 export class Scope extends Map<string, any> {
   public static ParentScope = 'ParentScope';
 
-  constructor() {
+  constructor(ec?: ExecutionContextI) {
     super();
   }
 
