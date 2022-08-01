@@ -129,4 +129,16 @@ export class Scope extends Map<string, any> {
     return parent;
   }
 
+  hasFactory<C>(refName: string, factoryKey: string, ec?: ExecutionContextI): boolean {
+    const factory = this.get(factoryKey);
+    if(factory.hasRegistered(refName, ec)) {
+      return true;
+    } else {
+      const parentScope = this.get(Scope.ParentScope) as Scope;
+      if (parentScope) {
+        return parentScope.hasFactory<C>(refName, factoryKey, ec);
+      }
+    }
+    return false;
+  }
 }
