@@ -1,6 +1,6 @@
 {
   "name": "@franzzemen/re-common",
-  "version": "0.0.36",
+  "version": "0.0.37",
   "description": "Common re elements",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,7 @@
   "devDependencies": {
     "@franzzemen/gulp-base": "^7.5.3",
     "@franzzemen/safe-config": "^2.0.43",
-    "@types/chai": "^4.3.1",
+    "@types/chai": "^4.3.3",
     "@types/mocha": "^9.1.1",
     "@types/object-path": "^0.11.1",
     "@types/uuid": "^8.3.4",
