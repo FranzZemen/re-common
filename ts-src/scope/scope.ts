@@ -8,8 +8,17 @@ export class Scope extends Map<string, any> {
   public static ParentScope = 'ParentScope';
   public static ChildScopes = 'ChildScopes';
 
-  constructor(options?: Options, ec?: ExecutionContextI) {
+  constructor(options?: Options, parentScope?: Scope, ec?: ExecutionContextI) {
     super();
+    this.set(Scope.ParentScope, parentScope);
+    if (parentScope) {
+      let childScopes: Scope [] = parentScope.get(Scope.ChildScopes);
+      if(!childScopes) {
+        childScopes = [];
+        parentScope.set(Scope.ChildScopes, childScopes);
+      }
+      childScopes.push(this);
+    }
   }
 
   getScopedFactory<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContextI): C {
