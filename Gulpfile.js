@@ -8,11 +8,13 @@ exports.npmu = (cb) => npmu([
   {
     path: join(__dirname, '../gulp-base'), packageName: '@franzzemen/gulp-base',
   }, {
-    path: join(__dirname, '../gulp-base'), packageName: '@franzzemen/safe-config',
+    path: join(__dirname, '../safe-config'), packageName: '@franzzemen/safe-config',
   }, {
-    path: join(__dirname, '../gulp-base'), packageName: '@franzzemen/npmu',
+    path: join(__dirname, '../npmu'), packageName: '@franzzemen/npmu',
   }, {
-    path: join(__dirname, '../gulp-base'), packageName: '@franzzemen/app-utility',
+    path: join(__dirname, '../app-utility'), packageName: '@franzzemen/app-utility',
+  }, {
+    path: join(__dirname, './'), packageName: '@franzzemen/re-common',
   }])
   .then(() => {
     console.log('cb...');
