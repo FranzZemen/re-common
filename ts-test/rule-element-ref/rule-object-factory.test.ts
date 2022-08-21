@@ -9,7 +9,7 @@ let should = chai.should();
 let expect = chai.expect;
 
 
-describe('Rules Engine Tests', () => {
+describe('re-common tests', () => {
   describe('Rule Object Factory Tests', () => {
     class RulesObjectImplFactory extends RuleElementFactory<RulesObjectImplI> {
       constructor() {

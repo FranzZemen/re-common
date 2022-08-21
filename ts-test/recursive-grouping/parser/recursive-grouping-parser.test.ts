@@ -56,7 +56,7 @@ const endConditionTests = [/^<<[^]*$/, /^HH[^]*$/];
 
 const unreachableCode = false;
 
-describe('Rules Engine Tests', () => {
+describe('re-common tests', () => {
   describe('core/recursive-grouping/parser/recursive-grouping-parser.test', () => {
     it('should not parse empty string to a reference', done => {
       const recursiveParser = new TestRecursiveGrouping();

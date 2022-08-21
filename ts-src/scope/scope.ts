@@ -1,15 +1,22 @@
+import {v4} from 'uuid';
 import {ExecutionContextI, LoggerAdapter} from '@franzzemen/app-utility';
 import {RuleElementModuleReference} from '../rule-element-ref/rule-element-reference';
 import {HasRefName} from '../util/has-ref-name';
 import {Options} from './options';
 import {ScopedFactory} from './scoped-factory';
 
+
 export class Scope extends Map<string, any> {
   public static ParentScope = 'ParentScope';
   public static ChildScopes = 'ChildScopes';
+  public static ScopeName = 'ScopeName';
+
+
+  public scopeName: string;
 
   constructor(options?: Options, parentScope?: Scope, ec?: ExecutionContextI) {
     super();
+    this.scopeName = this.constructor.name + '-' + v4();
     this.set(Scope.ParentScope, parentScope);
     if (parentScope) {
       let childScopes: Scope [] = parentScope.get(Scope.ChildScopes);
@@ -149,5 +156,52 @@ export class Scope extends Map<string, any> {
       }
     }
     return false;
+  }
+
+  // Are two scopes (reasonably) the same?  This is not fully exact.
+  // It purposefully does not force the two scopes or their contents to be of the same instance
+  isSameScope(o: Scope): boolean {
+    if(this === o) {
+      return true;
+    }
+
+    if(this.typeOfScope() === o.typeOfScope() && this.size == o.size) {
+      let iterator = this.keys();
+      let match = true;
+      // For now, we just match all the keys...
+      // TODO: compare values?
+      for(let key of iterator) {
+        if(!o.has(key)) {
+          match = false;
+          break;
+        }
+      }
+      return match;
+    } else {
+      return false;
+    }
+  }
+
+  typeOfScope(): string {
+    return this.constructor.name;
+  }
+
+  reParent(scope: Scope, parentScope: Scope, ec?: ExecutionContextI) {
+    if(parentScope) {
+      const existingParent = scope.get(Scope.ParentScope);
+      if(existingParent) {
+        const parentChildScopes = existingParent.get(Scope.ChildScopes);
+        if(parentChildScopes) {
+          parentChildScopes.remove(scope.get(Scope.ScopeName));
+        }
+      }
+      scope.set(Scope.ParentScope, parentScope);
+      let parentChildScopes: Map<string, Scope> = parentScope.get(Scope.ChildScopes);
+      if(!parentChildScopes) {
+        parentChildScopes = new Map<string, Scope>();
+        parentScope.set(Scope.ChildScopes, parentChildScopes);
+      }
+      parentChildScopes.set(scope.get(Scope.ScopeName), scope as Scope);
+    }
   }
 }
