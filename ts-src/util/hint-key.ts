@@ -1,4 +1,5 @@
 export class HintKey {
+  static Prefix = 'prefix';
   static Name = 'name';
   static Options = 'options';
   static Module = 'module';
