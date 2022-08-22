@@ -1,6 +1,6 @@
 {
   "name": "@franzzemen/re-common",
-  "version": "0.0.46",
+  "version": "0.0.47",
   "description": "Common re elements",
   "main": "index.js",
   "scripts": {
@@ -31,7 +31,7 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
-    "@franzzemen/app-utility": "0.2.10",
+    "@franzzemen/app-utility": "0.2.11",
     "fastest-validator": "^1.13.0",
     "moment": "^2.29.4",
     "object-path": "^0.11.8",
