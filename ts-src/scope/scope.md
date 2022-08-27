@@ -1,6 +1,7 @@
 # Scope
 
-This section is most relevant to re framework contributors:
+This section is most relevant to re framework contributors.  Framework users will interact with scopes mostly 
+unknowingly by providing configuration options, custom rule constructs and so on.
 
 The re framework allows for various definitions to be performed at different hierarchical levels, that can be overriden
 in other levels. This necessitates a concept the framework terms _scope_, which is similar to saying "in what scope are
@@ -18,7 +19,7 @@ inherits from the Map<string, any> template definition; allowing scope informati
 
 ## Scope Hierarchy
 
-Scopes are also hiearchical, in two ways:
+Scopes are also hierarchical, in two ways:
 
 1. Class Hiearchy
 2. Parent/Children Hierarchy
@@ -26,7 +27,7 @@ Scopes are also hiearchical, in two ways:
 ### Class Hierarchy
 
 The Scope definition follows a hierarchy of extended classes from Scope to the topmost class, which is loosely tied to
-the re framework hiearchy of RulesEngine->Application->RuleSet->Rule->Logical Condition->Condition->Expression->
+the re framework hierarchy of RulesEngine->Application->RuleSet->Rule->Logical Condition->Condition->Expression->
 DataType. This allows for constants and convenience methods to be defined at the most appropriate level, but is the
 least interesting part of scope hierarchy. Essentially, the code can refer to scopes through the definition at each
 level down, with the most convenient one being Map.
