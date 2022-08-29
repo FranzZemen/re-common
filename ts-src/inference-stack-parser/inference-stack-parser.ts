@@ -55,6 +55,8 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
         this.parserInferenceStack.push(stackedParser.refName);
       } else {
         // It's already in the inference stack
+        const log = new LoggerAdapter(execContext, 're-re-common', 'inference-stack-parser', 'addParser');
+        log.warn(`Attempt to add parser ${stackedParser.refName}.  It already exists and override is ${override}`);
       }
     }
     return ruleElement.instanceRef.instance;
@@ -82,9 +84,9 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * @return true if added
    */
   addParserAtStackIndex(stackedParser: InferenceParser | RuleElementModuleReference, stackIndex: number, execContext?: ExecutionContextI): boolean {
-    const log = new LoggerAdapter(execContext, 'rules-engine', 'inference-stack-parser', 'addStackedParserAtStackIndex');
+    const log = new LoggerAdapter(execContext, 're-common', 'inference-stack-parser', 'addStackedParserAtStackIndex');
     if (this.parserMap.has(stackedParser.refName)) {
-      const log = new LoggerAdapter(execContext, 'rules-engine', 'inference-stack-parser', 'addStackedParserAtStackIndex');
+      const log = new LoggerAdapter(execContext, 're-common', 'inference-stack-parser', 'addStackedParserAtStackIndex');
       log.warn(`Not adding existing parser ${stackedParser.refName}`);
       return false;
     }
@@ -97,7 +99,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
         this.parserInferenceStack.splice(stackIndex, 0, stackedParser.refName);
       }
     } else {
-      const log = new LoggerAdapter(execContext, 'rules-engine', 'inference-stack-parser', 'addStackedParserAtStackIndex');
+      const log = new LoggerAdapter(execContext, 're-common', 'inference-stack-parser', 'addStackedParserAtStackIndex');
       const err = new Error(`Attempt to add stacked parser ${stackedParser.refName} at position ${stackIndex} outside of stack size`);
       log.error(err);
       throw err;
@@ -115,6 +117,9 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     if(found) {
       const ndx = this.parserInferenceStack.indexOf(refName);
       this.parserInferenceStack.splice(ndx, 1);
+    } else {
+      const log = new LoggerAdapter(execContext, 're-common', 'inference-stack-parser', 'removeParser');
+      log.warn(`Parser ${refName} not found to remove, ignoring`);
     }
     return found;
   }
@@ -135,11 +140,11 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * @param inferenceStack
    * @param execContext
    */
-  setInferenceStack(inferenceStack: string[], execContext?: ExecutionContextI) {
+  orderInferenceStack(inferenceStack: string[], execContext?: ExecutionContextI) {
     // All the inference refs must be already loaded.
     if(inferenceStack.every(newInference => {
       if(!this.parserMap.has(newInference)) {
-        const log = new LoggerAdapter(execContext, 'rules-engine', 'inference-stack-parser', 'setInferenceStack');
+        const log = new LoggerAdapter(execContext, 're-common', 'inference-stack-parser', 'setInferenceStack');
         log.warn(`inference ${newInference} was not previously loaded`);
         return false;
       } else return true;
@@ -149,7 +154,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
         this.parserInferenceStack.push(newInference);
       });
     } else {
-      const log = new LoggerAdapter(execContext, 'rules-engine', 'inference-stack-parser', 'setInferenceStack');
+      const log = new LoggerAdapter(execContext, 're-common', 'inference-stack-parser', 'setInferenceStack');
       log.warn({inferenceStack, existingStack: this.parserInferenceStack}, 'Mismatch in stack contents');
       const err = new Error(`Mismatch in stack contents`);
       log.error(err);
@@ -157,6 +162,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     }
   }
 
+  
   register(reference: InferenceParser | RuleElementModuleReference | RuleElementInstanceReference<InferenceParser>, override, execContext?: ExecutionContextI, ...params): InferenceParser {
     if(!isRuleElementInstanceReference(reference)) {
       return this.addParser(reference, override = false, execContext);
