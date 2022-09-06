@@ -1,6 +1,6 @@
 import {ExecutionContextI, LoggerAdapter} from '@franzzemen/app-utility';
-import {FragmentParser} from './fragment-parser';
-import {Fragment, RecursiveGrouping} from '../recursive-grouping';
+import {FragmentParser} from './fragment-parser.js';
+import {Fragment, RecursiveGrouping} from '../recursive-grouping.js';
 
 
 

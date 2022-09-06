@@ -1,7 +1,7 @@
 import {ExecutionContextI} from '@franzzemen/app-utility';
 import chai from 'chai';
 import 'mocha';
-import {Scope} from '../../publish';
+import {Scope} from '../../publish/index.js';
 
 const expect = chai.expect;
 const should = chai.should();

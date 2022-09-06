@@ -3,7 +3,7 @@ import 'mocha';
 import {
   isRuleElementModuleReference,
   RuleElementModuleReference
-} from '../../publish'
+} from '../../publish/index.js'
 
 
 let should = chai.should();

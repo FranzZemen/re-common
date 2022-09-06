@@ -8,7 +8,7 @@ import {
   isRecursiveGrouping,
   RecursiveGroupingParser,
   Scope
-} from '../../../publish';
+} from '../../../publish/index.js';
 ;
 
 

@@ -1,6 +1,6 @@
-import {RuleElementFactory} from '../rule-element-ref/rule-element-factory';
-import {isOperator, OperatorI, StandardOperator} from './operator';
-import {StandardPlusOperator} from './standard/standard-plus-operator';
+import {RuleElementFactory} from '../rule-element-ref/rule-element-factory.js';
+import {isOperator, OperatorI, StandardOperator} from './operator.js';
+import {StandardPlusOperator} from './standard/standard-plus-operator.js';
 
 
 export function setOperators(synonyms: string[], operator: OperatorI) : Map<string, OperatorI> {

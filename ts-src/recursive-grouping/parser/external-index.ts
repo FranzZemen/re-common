@@ -1,2 +1,2 @@
-export * from './fragment-parser';
-export * from './recursive-grouping-parser';
+export * from './fragment-parser.js';
+export * from './recursive-grouping-parser.js';

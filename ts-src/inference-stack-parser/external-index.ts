@@ -1,1 +1,1 @@
-export * from './inference-stack-parser';
+export * from './inference-stack-parser.js';

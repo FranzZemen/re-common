@@ -1,9 +1,9 @@
 import {v4} from 'uuid';
 import {ExecutionContextI, LoggerAdapter} from '@franzzemen/app-utility';
-import {RuleElementModuleReference} from '../rule-element-ref/rule-element-reference';
-import {HasRefName} from '../util/has-ref-name';
-import {Options} from './options';
-import {ScopedFactory} from './scoped-factory';
+import {RuleElementModuleReference} from '../rule-element-ref/rule-element-reference.js';
+import {HasRefName} from '../util/has-ref-name.js';
+import {Options} from './options.js';
+import {ScopedFactory} from './scoped-factory.js';
 
 
 export class Scope extends Map<string, any> {

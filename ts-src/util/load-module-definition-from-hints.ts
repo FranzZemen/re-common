@@ -5,7 +5,7 @@ import {
   LoggerAdapter,
   ModuleDefinition
 } from '@franzzemen/app-utility';
-import {HintKey} from './hint-key';
+import {HintKey} from './hint-key.js';
 
 /**
  * Check to see if the module definition is provided.  There are four ways this might be defined:

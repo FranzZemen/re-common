@@ -1,7 +1,7 @@
 import 'mocha';
 import {ExecutionContextI} from '@franzzemen/app-utility';
 import chai from 'chai';
-import {HasRefName, InferenceStackParser} from '../../publish';
+import {HasRefName, InferenceStackParser} from '../../publish/index.js';
 
 const expect = chai.expect;
 const should = chai.should();

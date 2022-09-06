@@ -1,2 +1,2 @@
-export * from './rule-element-reference';
-export * from './rule-element-factory';
+export * from './rule-element-reference.js';
+export * from './rule-element-factory.js';

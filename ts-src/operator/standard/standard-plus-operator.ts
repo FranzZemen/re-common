@@ -1,5 +1,5 @@
 import {ExecutionContextI, LoggerAdapter} from '@franzzemen/app-utility';
-import {Operator, StandardOperator} from '../operator';
+import {Operator, StandardOperator} from '../operator.js';
 
 export class StandardPlusOperator extends Operator {
   constructor(symbol = StandardOperator.Plus) {

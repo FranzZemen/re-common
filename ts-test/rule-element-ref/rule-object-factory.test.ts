@@ -1,8 +1,10 @@
+import {ModuleResolution} from '@franzzemen/app-utility';
 import chai from 'chai';
 import 'mocha';
-import {RuleElementFactory, RuleElementModuleReference} from '../../publish';
+import {isPromise} from 'node:util/types';
+import {RuleElementFactory, RuleElementModuleReference} from '../../publish/index.js';
 
-import {RulesObjectImplI} from './rule-element-impl';
+import {RulesObjectImplI} from './rule-element-impl.js';
 
 
 let should = chai.should();
@@ -24,24 +26,29 @@ describe('re-common tests', () => {
     const factory = new RulesObjectImplFactory();
     const ref: RuleElementModuleReference = {refName: 'impl',
       module: {
-        moduleName: '../../../testing/rule-element-ref/rule-element-impl',
-        constructorName: 'RuleElementImpl'
+        moduleName: '../../../testing/rule-element-ref/rule-element-impl.js',
+        constructorName: 'RuleElementImpl',
+        moduleResolution: ModuleResolution.es
       }
     };
-    const instance: RulesObjectImplI = factory.register(ref, undefined, {config: {log: {level: 'debug'}}}, 'hello');
-    it('should register an instance using a constructor name and one parameter', done => {
-      expect(instance).to.exist;
-      instance.someFoo.should.equal('hello');
-      done();
+    const instanceOrPromise: RulesObjectImplI | Promise<RulesObjectImplI>= factory.register(ref, undefined, {config: {log: {level: 'debug'}}}, ['hello']);
+    it('should register an instance using a constructor name and one parameter', () => {
+      expect(instanceOrPromise).to.exist;
+      if (isPromise(instanceOrPromise)) {
+        return instanceOrPromise
+          .then(instance => {
+            return instance.someFoo.should.equal('hello');
+          })
+      } else {
+        instanceOrPromise.someFoo.should.equal('hello');
+      }
     });
-    it('should return an instance', done => {
+    it('should return an instance', () => {
       factory.getRegistered('impl').should.exist;
-      done();
     });
-    it('should unregister an instance', done => {
+    it('should unregister an instance', () => {
       factory.unregister('impl');
       expect(factory.getRegistered('impl')).to.be.undefined;
-      done();
     });
   });
 });

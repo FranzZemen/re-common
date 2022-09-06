@@ -1,3 +1,3 @@
-export * from './scoped-factory';
-export * from './options';
-export * from './scope'
+export * from './scoped-factory.js';
+export * from './options.js';
+export * from './scope.js'
