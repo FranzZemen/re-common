@@ -9,7 +9,7 @@ export interface RulesObjectImplI {
 export class RuleElementImpl extends RuleElementReference<RulesObjectImplI> implements RulesObjectImplI {
   refName: string;
   someFoo: string;
-  constructor(params: any[]) {
+  constructor(...params) {
     super();
     this.someFoo = params[0];
   }

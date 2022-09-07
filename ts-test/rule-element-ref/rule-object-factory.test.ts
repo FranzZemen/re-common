@@ -31,7 +31,7 @@ describe('re-common tests', () => {
         moduleResolution: ModuleResolution.es
       }
     };
-    const instanceOrPromise: RulesObjectImplI | Promise<RulesObjectImplI>= factory.register(ref, undefined, {config: {log: {level: 'debug'}}}, ['hello']);
+    const instanceOrPromise: RulesObjectImplI | Promise<RulesObjectImplI>= factory.register(ref, undefined, undefined, ['hello'],{config: {log: {level: 'debug'}}});
     it('should register an instance using a constructor name and one parameter', () => {
       expect(instanceOrPromise).to.exist;
       if (isPromise(instanceOrPromise)) {

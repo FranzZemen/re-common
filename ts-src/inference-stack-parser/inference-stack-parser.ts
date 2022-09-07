@@ -1,5 +1,5 @@
 import {isPromise} from 'node:util/types';
-import {ExecutionContextI, loadFromModule, LoggerAdapter} from '@franzzemen/app-utility';
+import {CheckFunction, ExecutionContextI, loadFromModule, LoggerAdapter} from '@franzzemen/app-utility';
 import {HasRefName} from '../util/has-ref-name.js';
 import {
   RuleElementInstanceReference,
@@ -10,7 +10,17 @@ import {
 } from '../rule-element-ref/rule-element-reference.js';
 import {ScopedFactory} from '../scope/scoped-factory.js';
 
-
+/**
+ * The Inference Stack Parser provides base class behaviors for inference parsing.  Inference parsing is when a parser
+ * encounters a construct for which there is no obvious kind or hint and attempts to infer what it is based on
+ * constructs already registered.  It does so by calling, in succession, a stack of registered parsers.
+ *
+ * This class makes few demands on the shape of the actual parsers to be registered by implementations.  They only need to
+ * contain a unique "refName" string property.  The parsers that are registered can be module loaded.  As such the
+ * ModuleDefinition.LoadSchema or a CheckFunction can be used to validate the shape of the module loaded parser upon load.
+ * This can be done either by the implementation class (through an override of addParser... methods), or by a
+ * user of the implementation class (no overrides).  The former is recommended.
+ */
 export abstract class InferenceStackParser<InferenceParser extends HasRefName> implements ScopedFactory<InferenceParser> {
   protected parserInferenceStack: string[] = [];
   protected parserMap = new Map<string, RuleElementReference<InferenceParser>>();
@@ -18,15 +28,31 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
   constructor() {
   }
 
-  abstract parse(remaining: string, scope: Map<string, any>, inferredContext?: any, ec?: ExecutionContextI): [string, any];
-
   /**
-   * Adds a parser
-   * @param stackedParser The parser to add.  If it exists, it does not replace the existing one.
-   * @param override
+   * Parse method implementations need to provide.
+   * @param remaining
+   * @param scope
+   * @param inferredContext
    * @param ec
    */
-  addParser(stackedParser: InferenceParser | RuleElementModuleReference, override = false, ec?: ExecutionContextI): InferenceParser | Promise<InferenceParser> {
+  abstract parse(remaining: string, scope: Map<string, any>, inferredContext?: any, ec?: ExecutionContextI): [string, any];
+
+
+  /**
+   * Add a parser to the end of the stack
+   * @param stackedParser Either a parser or a module reference to a parser.  This should meet the implementations version of the parser.
+   * If the module reference contains a LoadSchema, it will be used to verify the parser meets the desired shape.
+   * @param override Override if it already exists in the stack
+   * @param check  A CheckFunction for a parser added through a module reference.  If it exists, will be used instead of any LoadSchema in
+   * the module definition.
+   * @param paramsArray Any parameters required by factory function or constructor provided in a module definition.
+   * @param ec
+   * @return The parser added or an existing parser if it exists and override is set to false.  The return value can be synchronous
+   * or via Promise.  A Promise is returned if the parser add was through  RuleElementModuleReference and the target import is an ES
+   * module, since ES modules can only be loaded dynamically through the asynchronous import().  Commonjs targets do not produce
+   * asynchronous loads.
+   */
+  addParser(stackedParser: InferenceParser | RuleElementModuleReference, override = false, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): InferenceParser | Promise<InferenceParser> {
     const inferenceParser = this.parserMap.get(stackedParser.refName)?.instanceRef?.instance;
     if (inferenceParser && !override) {
       const log = new LoggerAdapter(ec, 'rules-engine', 'inference-stack-parser', 'addParser');
@@ -35,8 +61,8 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     }
     if (override || inferenceParser === undefined) {
       let ruleElementReferenceOrPromise: RuleElementReference<InferenceParser> | Promise<RuleElementReference<InferenceParser>>;
-      if(isRuleElementModuleReference(stackedParser)) {
-        ruleElementReferenceOrPromise = this.loadRuleElementReference(stackedParser);
+      if (isRuleElementModuleReference(stackedParser)) {
+        ruleElementReferenceOrPromise = this.loadRuleElementReference(stackedParser, check, paramsArray, ec);
       } else {
         ruleElementReferenceOrPromise = {instanceRef: {instance: stackedParser, refName: stackedParser.refName}};
       }
@@ -82,22 +108,25 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
   }
 
   /**
-   * Adds a stacked parser at a specific index.  If it already exists, it does not replace the existing one.
-   * Also, the stackIndex is relative to the current stack (important to note if it already exists and the new position
-   * is after the current position).
+   * Similar to addParser, but adds it at specific stack index
    * @param stackedParser
    * @param stackIndex
+   * @param check
+   * @param paramsArray
    * @param ec
-   * @return true if added
+   * @return The parser added or an existing parser if it exists and override is set to false.  The return value can be synchronous
+   * or via Promise.  A Promise is returned if the parser add was through  RuleElementModuleReference and the target import is an ES
+   * module, since ES modules can only be loaded dynamically through the asynchronous import().  Commonjs targets do not produce
+   * asynchronous loads.
    */
-  addParserAtStackIndex(stackedParser: InferenceParser | RuleElementModuleReference, stackIndex: number, ec?: ExecutionContextI): boolean | Promise<boolean> {
+  addParserAtStackIndex(stackedParser: InferenceParser | RuleElementModuleReference, stackIndex: number, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): boolean | Promise<boolean> {
     if (this.hasParser(stackedParser.refName)) {
       // Rarely if'ed.  Create log here.
       const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'addStackedParserAtStackIndex');
       log.warn(`Not adding existing parser ${stackedParser.refName}`);
       return false;
-    } else if(isRuleElementModuleReference(stackedParser)) {
-      let ruleElementOrPromise = this.loadRuleElementReference(stackedParser);
+    } else if (isRuleElementModuleReference(stackedParser)) {
+      let ruleElementOrPromise = this.loadRuleElementReference(stackedParser, check, paramsArray, ec);
       if (isPromise(ruleElementOrPromise)) {
         return ruleElementOrPromise
           .then(ruleElement => {
@@ -108,28 +137,32 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
             log.error(err);
             throw err;
           });
-      }
-      else {
+      } else {
         return this._addParserAtStackIndexBody(stackedParser, stackIndex, ruleElementOrPromise, ec);
       }
     } else {
-      return this._addParserAtStackIndexBody(stackedParser, stackIndex, {instanceRef:{refName: stackedParser.refName, instance: stackedParser}});
+      return this._addParserAtStackIndexBody(stackedParser, stackIndex, {
+        instanceRef: {
+          refName: stackedParser.refName,
+          instance: stackedParser
+        }
+      });
     }
   }
 
   /**
    * Removes a parser if it finds it
    * @param refName
-   * @param execContext
+   * @param ec
    * @return true if the parser existed
    */
-  removeParser(refName: string, execContext?: ExecutionContextI): boolean {
+  removeParser(refName: string, ec?: ExecutionContextI): boolean {
     const found = this.parserMap.delete(refName);
     if (found) {
       const ndx = this.parserInferenceStack.indexOf(refName);
       this.parserInferenceStack.splice(ndx, 1);
     } else {
-      const log = new LoggerAdapter(execContext, 're-common', 'inference-stack-parser', 'removeParser');
+      const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'removeParser');
       log.warn(`Parser ${refName} not found to remove, ignoring`);
     }
     return found;
@@ -173,9 +206,9 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     }
   }
 
-  register(reference: InferenceParser | RuleElementModuleReference | RuleElementInstanceReference<InferenceParser>, override, execContext?: ExecutionContextI, ...params): InferenceParser | Promise<InferenceParser> {
+  register(reference: InferenceParser | RuleElementModuleReference | RuleElementInstanceReference<InferenceParser>, override, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): InferenceParser | Promise<InferenceParser> {
     if (!isRuleElementInstanceReference(reference)) {
-      return this.addParser(reference, override = false, execContext);
+      return this.addParser(reference, override = false, check, paramsArray, ec);
     } else {
       throw new Error('Not applicable');
     }
@@ -193,8 +226,12 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     return this.getParser(refName, ec);
   }
 
-  private loadRuleElementReference(stackedParser: RuleElementModuleReference, ec?: ExecutionContextI): RuleElementReference<InferenceParser> | Promise<RuleElementReference<InferenceParser>> {
-    const instanceOrPromise = loadFromModule<InferenceParser>(stackedParser.module, undefined, undefined, ec);
+  private loadRuleElementReference(stackedParser: RuleElementModuleReference, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): RuleElementReference<InferenceParser> | Promise<RuleElementReference<InferenceParser>> {
+    const log = new LoggerAdapter(ec, '@franzzemen/re-common', 'inference-stack-parser', 'loadRuleElementReference');
+    if (!stackedParser?.module?.loadSchema?.validationSchema) {
+      log.warn(stackedParser, `No validation schema provided`);
+    }
+    const instanceOrPromise = loadFromModule<InferenceParser>(stackedParser.module, paramsArray, check, ec);
     if (isPromise(instanceOrPromise)) {
       return instanceOrPromise
         .then(instance => {
@@ -203,7 +240,6 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
             moduleRef: stackedParser
           };
         }, err => {
-          const log = new LoggerAdapter(ec, '@franzzemen/re-common', 'inference-stack-parser', 'getRuleElement');
           log.error(err);
           throw err;
         });

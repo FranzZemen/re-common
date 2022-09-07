@@ -57,11 +57,11 @@ export class Scope extends Map<string, any> {
             }
           } else {
             // If no ancestor existed, then just set the data type at this scope level
-            factory.register(item, true, ec);
+            factory.register(item, true, undefined, undefined,ec);
           }
         } else {
           // If the override flag is false, then set at this level, but don't override what's in the factory
-          factory.register(item, false, ec);
+          factory.register(item, false, undefined, undefined, ec);
         }
         if (overrideDown) {
           // Remove all child hierarchy data types
@@ -88,7 +88,7 @@ export class Scope extends Map<string, any> {
     }
     if (furthestAncestor) {
       const ancestorFactory: ScopedFactory<C> = furthestAncestor.get(factoryKey);
-      ancestorFactory.register(item, true, ec);
+      ancestorFactory.register(item, true, undefined, undefined, ec);
       return true;
     } else {
       return false;
