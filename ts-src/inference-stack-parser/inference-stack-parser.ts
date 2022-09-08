@@ -35,7 +35,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * @param inferredContext
    * @param ec
    */
-  abstract parse(remaining: string, scope: Map<string, any>, inferredContext?: any, ec?: ExecutionContextI): [string, any];
+  abstract parse(remaining: string, scope: Map<string, any>, inferredContext?: any, ec?: ExecutionContextI): [string, any] | Promise<[string, any]>
 
 
   /**

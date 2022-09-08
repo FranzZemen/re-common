@@ -1,4 +1,11 @@
-import {CheckFunction, ExecutionContextI, loadFromModule, LoadSchema, LoggerAdapter} from '@franzzemen/app-utility';
+import {
+  CheckFunction,
+  ExecutionContextI,
+  loadFromModule,
+  LoadSchema,
+  LoggerAdapter,
+  ModuleResolution
+} from '@franzzemen/app-utility';
 import {isPromise} from 'node:util/types';
 import {ScopedFactory} from '../scope/scoped-factory.js';
 import {
@@ -92,7 +99,6 @@ export abstract class RuleElementFactory<C> implements ScopedFactory<C> {
     });
     return c;
   }
-
 
 }
 
