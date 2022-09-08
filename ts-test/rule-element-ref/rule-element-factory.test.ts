@@ -12,7 +12,7 @@ let expect = chai.expect;
 
 
 describe('re-common tests', () => {
-  describe('Rule Object Factory Tests', () => {
+  describe('Rule Element Factory Tests', () => {
     class RulesObjectImplFactory extends RuleElementFactory<RulesObjectImplI> {
       constructor() {
         super();

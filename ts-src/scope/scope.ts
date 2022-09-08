@@ -1,6 +1,11 @@
+ import {ExecutionContextI, LoggerAdapter, ModuleResolution} from '@franzzemen/app-utility';
+import {isPromise} from 'node:util/types';
 import {v4} from 'uuid';
-import {ExecutionContextI, LoggerAdapter} from '@franzzemen/app-utility';
-import {RuleElementModuleReference} from '../rule-element-ref/rule-element-reference.js';
+import {
+  isRuleElementModuleReference,
+  RuleElementInstanceReference,
+  RuleElementModuleReference
+} from '../rule-element-ref/rule-element-reference.js';
 import {HasRefName} from '../util/has-ref-name.js';
 import {Options} from './options.js';
 import {ScopedFactory} from './scoped-factory.js';
@@ -42,36 +47,72 @@ export class Scope extends Map<string, any> {
     return undefined;
   }
 
-
-  add<C>(items: RuleElementModuleReference[], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI) {
-    const log = new LoggerAdapter(ec, 'rules-engine', 'scope-functions', 'add');
-    if (items?.length > 0) {
-      const factory: ScopedFactory<C> = this.get(factoryKey);
-      items.forEach(item => {
-        if (override) {
-          // Clear anscestors, adding the data type to the furthest ancestor
-          if (this.overrideScopes(item, factoryKey, ec)) {
-            // IF ancestor existed (overrideDataType = true), then clear this dataFactory
-            if (factory.hasRegistered(item.refName, ec)) {
-              factory.unregister(item.refName, ec);
-            }
-          } else {
-            // If no ancestor existed, then just set the data type at this scope level
-            factory.register(item, true, undefined, undefined,ec);
+  private async _addRuleElementAsync<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI): Promise<void> {
+    const factory: ScopedFactory<C> = this.get(factoryKey);
+    for(const item of items) {
+      if (override) {
+        // Clear anscestors, adding the data type to the furthest ancestor
+        if (this.overrideRuleElementInScopes(item, factoryKey, ec)) {
+          // IF ancestor existed (overrideDataType = true), then clear this dataFactory
+          if (factory.hasRegistered(item.refName, ec)) {
+            factory.unregister(item.refName, ec);
           }
         } else {
-          // If the override flag is false, then set at this level, but don't override what's in the factory
-          factory.register(item, false, undefined, undefined, ec);
+          // If no ancestor existed, then just set the data type at this scope level
+          // Ignore result, but wait for promise to settle, so order is kept.
+          await factory.register(item, true, undefined, undefined, ec);
         }
-        if (overrideDown) {
-          // Remove all child hierarchy data types
-          this.recurseRemoveChildItems<C>([item.refName], factoryKey, ec);
-        }
-      });
+      } else {
+        // If the override flag is false, then set at this level, but don't override what's in the factory
+        await factory.register(item, false, undefined, undefined, ec);
+      }
+      if (overrideDown) {
+        // Remove all child hierarchy data types
+        this.recurseRemoveRuleElementChildItems<C>([item.refName], factoryKey, ec);
+      }
     }
   }
 
-  overrideScopes<C>(item: RuleElementModuleReference, factoryKey: string, ec?: ExecutionContextI): boolean {
+  // TODO: check function
+  // TODO:  Should we allow to add instances of an item?
+  addRuleElement<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI): void | Promise<void> {
+    const log = new LoggerAdapter(ec, 'rules-engine', 'scope-functions', 'add');
+    if (items?.length > 0) {
+
+      // Verify if any modules will cause async processing.
+      const hasAsync = items.some(item => isRuleElementModuleReference(item) && item.module.moduleResolution === ModuleResolution.es);
+      if (hasAsync) {
+        this._addRuleElementAsync(items, factoryKey, override, overrideDown, ec);
+      } else {
+        const factory: ScopedFactory<C> = this.get(factoryKey);
+        items.forEach(item => {
+          if (override) {
+            // Clear anscestors, adding the data type to the furthest ancestor
+            if (this.overrideRuleElementInScopes(item, factoryKey, ec)) {
+              // IF ancestor existed (overrideDataType = true), then clear this dataFactory
+              if (factory.hasRegistered(item.refName, ec)) {
+                factory.unregister(item.refName, ec);
+              }
+            } else {
+              // If no ancestor existed, then just set the data type at this scope level
+              // TODO: Factory. register can return a Promise, and we should be passing a check function? (understanding that items may have schemas...)
+              factory.register(item, true, undefined, undefined, ec);
+            }
+          } else {
+            // If the override flag is false, then set at this level, but don't override what's in the factory
+            factory.register(item, false, undefined, undefined, ec);
+          }
+          if (overrideDown) {
+            // Remove all child hierarchy data types
+            this.recurseRemoveRuleElementChildItems<C>([item.refName], factoryKey, ec);
+          }
+        });
+      }
+    }
+  }
+
+  // TODO: ? Check function?
+  overrideRuleElementInScopes<C>(item: (RuleElementModuleReference | RuleElementInstanceReference<C>), factoryKey: string, ec?: ExecutionContextI): boolean | Promise<boolean> {
     // Start at the top of the stack
     let height = this.getScopeDepth(ec);
     let furthestAncestor: Map<string, any>;
@@ -88,32 +129,43 @@ export class Scope extends Map<string, any> {
     }
     if (furthestAncestor) {
       const ancestorFactory: ScopedFactory<C> = furthestAncestor.get(factoryKey);
-      ancestorFactory.register(item, true, undefined, undefined, ec);
-      return true;
+      const valueOrPromise = ancestorFactory.register(item, true, undefined, undefined, ec);
+      if(isPromise(valueOrPromise)) {
+        return valueOrPromise
+          .then(value => {
+            return true;
+          }, err=> {
+            const log = new LoggerAdapter(ec, 're-common', 'scope', 'overrideScopes');
+            log.error(err);
+            throw err;
+          });
+      } else {
+        return true;
+      }
     } else {
       return false;
     }
   }
 
 
-  remove<C extends HasRefName>(refNames: string [], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI) {
+  removeRuleElements<C extends HasRefName>(refNames: string [], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI) {
     let scope = this;
     do {
-      scope.removeInScope(refNames, factoryKey, ec);
+      scope.removeRuleElementsInScope(refNames, factoryKey, ec);
     } while (override && (scope = scope.get(Scope.ParentScope)));
     if (overrideDown) {
-      this.recurseRemoveChildItems(refNames, factoryKey, ec);
+      this.recurseRemoveRuleElementChildItems(refNames, factoryKey, ec);
     }
   }
 
-  recurseRemoveChildItems<C>(refNames: string[], factoryKey: string, ec) {
+  recurseRemoveRuleElementChildItems<C>(refNames: string[], factoryKey: string, ec) {
     (this.get(Scope.ChildScopes) as Scope[]).forEach(childScope => {
-      childScope.removeInScope<C>(refNames, factoryKey, ec);
-      childScope.recurseRemoveChildItems<C>(refNames, factoryKey, ec);
+      childScope.removeRuleElementsInScope<C>(refNames, factoryKey, ec);
+      childScope.recurseRemoveRuleElementChildItems<C>(refNames, factoryKey, ec);
     });
   }
 
-  removeInScope<C>(refNames: string[], factoryKey: string, ec: ExecutionContextI) {
+  removeRuleElementsInScope<C>(refNames: string[], factoryKey: string, ec: ExecutionContextI) {
     const factory: ScopedFactory<C> = this.get(factoryKey);
     refNames.forEach(refName => {
       if (factory.hasRegistered(refName, ec)) {
@@ -122,7 +174,10 @@ export class Scope extends Map<string, any> {
     });
   }
 
-
+  /**
+   * Get the dept of the scope
+   * @param execContext
+   */
   getScopeDepth(execContext?: ExecutionContextI): number {
     let depth = 0;
     let scope = this;
@@ -186,22 +241,36 @@ export class Scope extends Map<string, any> {
     return this.constructor.name;
   }
 
-  reParent(scope: Scope, parentScope: Scope, ec?: ExecutionContextI) {
+  /**
+   * For this scope, place it under a new parentScope.  Old parent scope will lose this 'child'
+   * @param scope
+   * @param parentScope
+   * @param ec
+   */
+  reParent(parentScope: Scope, ec?: ExecutionContextI) {
     if(parentScope) {
-      const existingParent = scope.get(Scope.ParentScope);
+      const existingParent = this.get(Scope.ParentScope);
       if(existingParent) {
-        const parentChildScopes = existingParent.get(Scope.ChildScopes);
+        const parentChildScopes: Scope[] = existingParent.get(Scope.ChildScopes);
         if(parentChildScopes) {
-          parentChildScopes.remove(scope.get(Scope.ScopeName));
+          const thisScopeNdx = parentChildScopes.findIndex(item => item.scopeName === this.scopeName);
+          if(thisScopeNdx >= 0) {
+            parentChildScopes.splice(thisScopeNdx,1);
+          } else {
+            const log = new LoggerAdapter(ec, 're-common', 'scope', 'reParent');
+            const err = new Error ('Scope inconsistency...child scope not found in parent scope when re-parenting');
+            log.error(err);
+            throw err;
+          }
         }
       }
-      scope.set(Scope.ParentScope, parentScope);
-      let parentChildScopes: Map<string, Scope> = parentScope.get(Scope.ChildScopes);
+      this.set(Scope.ParentScope, parentScope);
+      let parentChildScopes: Scope[] = parentScope.get(Scope.ChildScopes);
       if(!parentChildScopes) {
-        parentChildScopes = new Map<string, Scope>();
+        parentChildScopes = [];
         parentScope.set(Scope.ChildScopes, parentChildScopes);
       }
-      parentChildScopes.set(scope.get(Scope.ScopeName), scope as Scope);
+      parentChildScopes.push(this);
     }
   }
 }
