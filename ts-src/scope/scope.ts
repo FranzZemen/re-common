@@ -19,7 +19,7 @@ export class Scope extends Map<string, any> {
 
   public scopeName: string;
 
-  constructor(options?: Options, parentScope?: Scope, ec?: ExecutionContextI) {
+  constructor(protected options?: Options, parentScope?: Scope, ec?: ExecutionContextI) {
     super();
     this.scopeName = this.constructor.name + '-' + v4();
     this.set(Scope.ParentScope, parentScope);
@@ -33,7 +33,7 @@ export class Scope extends Map<string, any> {
     }
   }
 
-  getScopedFactory<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContextI): C {
+  getScopedFactoryItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContextI): C {
     const factory: ScopedFactory<C> = this.get(factoryKey);
     const c = factory.getRegistered(refName, ec);
     if (c) {
@@ -41,18 +41,18 @@ export class Scope extends Map<string, any> {
     } else if (searchParent) {
       const parentScope = this.get(Scope.ParentScope) as Scope;
       if (parentScope) {
-        return parentScope.getScopedFactory<C>(refName, factoryKey, searchParent, ec);
+        return parentScope.getScopedFactoryItem<C>(refName, factoryKey, searchParent, ec);
       }
     }
     return undefined;
   }
 
-  private async _addRuleElementAsync<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI): Promise<void> {
+  private async _addScopedFactoryItemsAsync<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI): Promise<void> {
     const factory: ScopedFactory<C> = this.get(factoryKey);
     for(const item of items) {
       if (override) {
         // Clear anscestors, adding the data type to the furthest ancestor
-        if (this.overrideRuleElementInScopes(item, factoryKey, ec)) {
+        if (this.overrideScopedFactoryItemInScopes(item, factoryKey, ec)) {
           // IF ancestor existed (overrideDataType = true), then clear this dataFactory
           if (factory.hasRegistered(item.refName, ec)) {
             factory.unregister(item.refName, ec);
@@ -68,27 +68,27 @@ export class Scope extends Map<string, any> {
       }
       if (overrideDown) {
         // Remove all child hierarchy data types
-        this.recurseRemoveRuleElementChildItems<C>([item.refName], factoryKey, ec);
+        this.recurseRemoveScopedFactoryChildItems<C>([item.refName], factoryKey, ec);
       }
     }
   }
 
   // TODO: check function
   // TODO:  Should we allow to add instances of an item?
-  addRuleElement<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI): void | Promise<void> {
+  addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI): void | Promise<void> {
     const log = new LoggerAdapter(ec, 'rules-engine', 'scope-functions', 'add');
     if (items?.length > 0) {
 
       // Verify if any modules will cause async processing.
       const hasAsync = items.some(item => isRuleElementModuleReference(item) && item.module.moduleResolution === ModuleResolution.es);
       if (hasAsync) {
-        this._addRuleElementAsync(items, factoryKey, override, overrideDown, ec);
+        this._addScopedFactoryItemsAsync(items, factoryKey, override, overrideDown, ec);
       } else {
         const factory: ScopedFactory<C> = this.get(factoryKey);
         items.forEach(item => {
           if (override) {
             // Clear anscestors, adding the data type to the furthest ancestor
-            if (this.overrideRuleElementInScopes(item, factoryKey, ec)) {
+            if (this.overrideScopedFactoryItemInScopes(item, factoryKey, ec)) {
               // IF ancestor existed (overrideDataType = true), then clear this dataFactory
               if (factory.hasRegistered(item.refName, ec)) {
                 factory.unregister(item.refName, ec);
@@ -104,7 +104,7 @@ export class Scope extends Map<string, any> {
           }
           if (overrideDown) {
             // Remove all child hierarchy data types
-            this.recurseRemoveRuleElementChildItems<C>([item.refName], factoryKey, ec);
+            this.recurseRemoveScopedFactoryChildItems<C>([item.refName], factoryKey, ec);
           }
         });
       }
@@ -112,7 +112,7 @@ export class Scope extends Map<string, any> {
   }
 
   // TODO: ? Check function?
-  overrideRuleElementInScopes<C>(item: (RuleElementModuleReference | RuleElementInstanceReference<C>), factoryKey: string, ec?: ExecutionContextI): boolean | Promise<boolean> {
+  overrideScopedFactoryItemInScopes<C>(item: (RuleElementModuleReference | RuleElementInstanceReference<C>), factoryKey: string, ec?: ExecutionContextI): boolean | Promise<boolean> {
     // Start at the top of the stack
     let height = this.getScopeDepth(ec);
     let furthestAncestor: Map<string, any>;
@@ -148,24 +148,27 @@ export class Scope extends Map<string, any> {
   }
 
 
-  removeRuleElements<C extends HasRefName>(refNames: string [], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI) {
+  removeScopedFactoryItem<C extends HasRefName>(refNames: string [], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI) {
     let scope = this;
     do {
-      scope.removeRuleElementsInScope(refNames, factoryKey, ec);
+      scope.removeScopedFactoryItemsInScope(refNames, factoryKey, ec);
     } while (override && (scope = scope.get(Scope.ParentScope)));
     if (overrideDown) {
-      this.recurseRemoveRuleElementChildItems(refNames, factoryKey, ec);
+      this.recurseRemoveScopedFactoryChildItems(refNames, factoryKey, ec);
     }
   }
 
-  recurseRemoveRuleElementChildItems<C>(refNames: string[], factoryKey: string, ec) {
+  private recurseRemoveScopedFactoryChildItems<C>(refNames: string[], factoryKey: string, ec) {
+    if(this.get(Scope.ChildScopes) == undefined) {
+      return;
+    }
     (this.get(Scope.ChildScopes) as Scope[]).forEach(childScope => {
-      childScope.removeRuleElementsInScope<C>(refNames, factoryKey, ec);
-      childScope.recurseRemoveRuleElementChildItems<C>(refNames, factoryKey, ec);
+      childScope.removeScopedFactoryItemsInScope<C>(refNames, factoryKey, ec);
+      childScope.recurseRemoveScopedFactoryChildItems<C>(refNames, factoryKey, ec);
     });
   }
 
-  removeRuleElementsInScope<C>(refNames: string[], factoryKey: string, ec: ExecutionContextI) {
+  private removeScopedFactoryItemsInScope<C>(refNames: string[], factoryKey: string, ec: ExecutionContextI) {
     const factory: ScopedFactory<C> = this.get(factoryKey);
     refNames.forEach(refName => {
       if (factory.hasRegistered(refName, ec)) {
@@ -200,14 +203,14 @@ export class Scope extends Map<string, any> {
     return parent;
   }
 
-  hasFactory<C>(refName: string, factoryKey: string, ec?: ExecutionContextI): boolean {
+  hasScopedFactoryItem<C>(refName: string, factoryKey: string, ec?: ExecutionContextI): boolean {
     const factory = this.get(factoryKey);
     if(factory.hasRegistered(refName, ec)) {
       return true;
     } else {
       const parentScope = this.get(Scope.ParentScope) as Scope;
       if (parentScope) {
-        return parentScope.hasFactory<C>(refName, factoryKey, ec);
+        return parentScope.hasScopedFactoryItem<C>(refName, factoryKey, ec);
       }
     }
     return false;
