@@ -1,4 +1,4 @@
- import {ExecutionContextI, LoggerAdapter, ModuleResolution} from '@franzzemen/app-utility';
+ import {CheckFunction, ExecutionContextI, LoggerAdapter, ModuleResolution} from '@franzzemen/app-utility';
 import {isPromise} from 'node:util/types';
 import {v4} from 'uuid';
 import {
@@ -47,12 +47,12 @@ export class Scope extends Map<string, any> {
     return undefined;
   }
 
-  private async _addScopedFactoryItemsAsync<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI): Promise<void> {
+  private async _addScopedFactoryItemsAsync<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): Promise<void> {
     const factory: ScopedFactory<C> = this.get(factoryKey);
     for(const item of items) {
       if (override) {
         // Clear anscestors, adding the data type to the furthest ancestor
-        if (this.overrideScopedFactoryItemInScopes(item, factoryKey, ec)) {
+        if (this.overrideScopedFactoryItemInScopes(item, factoryKey, check, paramsArray, ec)) {
           // IF ancestor existed (overrideDataType = true), then clear this dataFactory
           if (factory.hasRegistered(item.refName, ec)) {
             factory.unregister(item.refName, ec);
@@ -60,11 +60,11 @@ export class Scope extends Map<string, any> {
         } else {
           // If no ancestor existed, then just set the data type at this scope level
           // Ignore result, but wait for promise to settle, so order is kept.
-          await factory.register(item, true, undefined, undefined, ec);
+          await factory.register(item, true, check, paramsArray, ec);
         }
       } else {
         // If the override flag is false, then set at this level, but don't override what's in the factory
-        await factory.register(item, false, undefined, undefined, ec);
+        await factory.register(item, false, check, paramsArray, ec);
       }
       if (overrideDown) {
         // Remove all child hierarchy data types
@@ -73,34 +73,31 @@ export class Scope extends Map<string, any> {
     }
   }
 
-  // TODO: check function
-  // TODO:  Should we allow to add instances of an item?
-  addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI): void | Promise<void> {
+  addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): void | Promise<void> {
     const log = new LoggerAdapter(ec, 'rules-engine', 'scope-functions', 'add');
     if (items?.length > 0) {
 
       // Verify if any modules will cause async processing.
       const hasAsync = items.some(item => isRuleElementModuleReference(item) && item.module.moduleResolution === ModuleResolution.es);
       if (hasAsync) {
-        this._addScopedFactoryItemsAsync(items, factoryKey, override, overrideDown, ec);
+        this._addScopedFactoryItemsAsync(items, factoryKey, override, overrideDown, check, paramsArray, ec);
       } else {
         const factory: ScopedFactory<C> = this.get(factoryKey);
         items.forEach(item => {
           if (override) {
             // Clear anscestors, adding the data type to the furthest ancestor
-            if (this.overrideScopedFactoryItemInScopes(item, factoryKey, ec)) {
+            if (this.overrideScopedFactoryItemInScopes(item, factoryKey, check, paramsArray, ec)) {
               // IF ancestor existed (overrideDataType = true), then clear this dataFactory
               if (factory.hasRegistered(item.refName, ec)) {
                 factory.unregister(item.refName, ec);
               }
             } else {
               // If no ancestor existed, then just set the data type at this scope level
-              // TODO: Factory. register can return a Promise, and we should be passing a check function? (understanding that items may have schemas...)
-              factory.register(item, true, undefined, undefined, ec);
+              factory.register(item, true, check, paramsArray, ec);
             }
           } else {
             // If the override flag is false, then set at this level, but don't override what's in the factory
-            factory.register(item, false, undefined, undefined, ec);
+            factory.register(item, false, check, paramsArray, ec);
           }
           if (overrideDown) {
             // Remove all child hierarchy data types
@@ -111,8 +108,7 @@ export class Scope extends Map<string, any> {
     }
   }
 
-  // TODO: ? Check function?
-  overrideScopedFactoryItemInScopes<C>(item: (RuleElementModuleReference | RuleElementInstanceReference<C>), factoryKey: string, ec?: ExecutionContextI): boolean | Promise<boolean> {
+  private overrideScopedFactoryItemInScopes<C>(item: (RuleElementModuleReference | RuleElementInstanceReference<C>), factoryKey: string, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): boolean | Promise<boolean> {
     // Start at the top of the stack
     let height = this.getScopeDepth(ec);
     let furthestAncestor: Map<string, any>;
@@ -129,7 +125,7 @@ export class Scope extends Map<string, any> {
     }
     if (furthestAncestor) {
       const ancestorFactory: ScopedFactory<C> = furthestAncestor.get(factoryKey);
-      const valueOrPromise = ancestorFactory.register(item, true, undefined, undefined, ec);
+      const valueOrPromise = ancestorFactory.register(item, true, check, paramsArray, ec);
       if(isPromise(valueOrPromise)) {
         return valueOrPromise
           .then(value => {
