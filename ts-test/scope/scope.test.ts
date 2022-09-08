@@ -1,12 +1,21 @@
+import {CheckFunction, ModuleResolution} from '@franzzemen/app-utility';
 import chai from 'chai';
 import 'mocha';
-import {RuleElementFactory, RuleElementInstanceReference, Scope} from '../../publish/index.js';
-import {RuleElementImpl, RulesObjectImplFactory, RulesObjectImplI} from '../rule-element-ref/rule-element-impl.js';
+import Validator from 'fastest-validator';
+import {isPromise} from 'node:util/types';
+import {
+  RuleElementFactory,
+  RuleElementInstanceReference,
+  RuleElementModuleReference,
+  Scope
+} from '../../publish/index.js';
+import {RuleElementImpl, RulesObjectImplFactory} from '../rule-element-ref/rule-element-impl.js';
 
 const expect = chai.expect;
 const should = chai.should();
 
 
+const unreachableCode = false;
 
 describe('re-common tests', () => {
   describe('scope tests', () => {
@@ -102,6 +111,68 @@ describe('re-common tests', () => {
         child1.getScopedFactoryItem<RuleElementImpl>('1', factoryName, true).thisSequence.should.equal(parentSequence);
         child2.getScopedFactoryItem<RuleElementImpl>('1', factoryName, true).thisSequence.should.equal(parentSequence);
       });
+      it('should add module items', () => {
+        const scope = new Scope();
+        const factoryName = 'TestFactory';
+        scope.set(factoryName, new RulesObjectImplFactory());
+        const validationSchema = {
+          refName: {type: 'string'},
+          someFoo: {type: 'string'},
+          thisSequence: {type: 'number'}
+        };
+        const module1: RuleElementModuleReference = {
+          refName: 'Type1',
+          module: {
+            moduleName: '../../../testing/rule-element-ref/rule-element-impl.js',
+            constructorName: 'RuleElementImpl',
+            moduleResolution: ModuleResolution.es,
+            loadSchema: {
+              useNewCheckerFunction: true,
+              validationSchema
+            }
+          }
+        }
+        const paramsArray1 = ['First'];
+
+        const module2: RuleElementModuleReference = {
+          refName: 'Type2',
+          module: {
+            moduleName: '../../../testing/rule-element-ref/rule-element-impl.js',
+            constructorName: 'RuleElementImpl',
+            moduleResolution: ModuleResolution.es
+          }
+        }
+        const paramsArray2 = ['Second'];
+        const checker2: CheckFunction = (new Validator()).compile(validationSchema);
+
+        const item3: RuleElementInstanceReference<RuleElementImpl> = {
+          refName: 'Type3',
+          instance: new RuleElementImpl('Third')
+        }
+        const result = scope.addScopedFactoryItems([module1, module2, item3], factoryName, false, false, [undefined, checker2, undefined ], [paramsArray1, paramsArray2, undefined]);
+        if(isPromise(result)) {
+          result.then (()=> {
+            const factory : RuleElementFactory<RuleElementImpl> = scope.get(factoryName);
+            const impls = factory.getAllInstances();
+            impls.length.should.equal(3);
+            impls[0].refName.should.equal('First');
+            impls[0].someFoo.should.equal('First');
+            impls[1].refName.should.equal('Second');
+            impls[1].someFoo.should.equal('Second');
+            impls[2].refName.should.equal('Third');
+            impls[2].refName.should.equal('Third');
+            factory.hasRegistered('Type1').should.be.true;
+            factory.hasRegistered('Type2').should.be.true;
+            factory.hasRegistered('Type3').should.be.true;
+          }, err => {
+            console.error (err);
+            unreachableCode.should.be.true;
+          })
+        } else {
+          console.error ('Cannot reach here, es modules make it async');
+          unreachableCode.should.be.true;
+        }
+      })
     });
   });
 });
