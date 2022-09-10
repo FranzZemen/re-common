@@ -1,6 +1,6 @@
 {
   "name": "@franzzemen/re-common",
-  "version": "2.0.3",
+  "version": "3.0.0",
   "description": "Common re elements",
   "type": "module",
   "main": "index.js",
@@ -29,10 +29,10 @@
     "gulp": "^4.0.2",
     "gulp-mocha": "^8.0.0",
     "mocha": "^10.0.0",
-    "typescript": "^4.8.2"
+    "typescript": "^4.8.3"
   },
   "dependencies": {
-    "@franzzemen/app-utility": "2.0.7",
+    "@franzzemen/app-utility": "2.2.2",
     "fastest-validator": "^1.15.0",
     "moment": "^2.29.4",
     "object-path": "^0.11.8",

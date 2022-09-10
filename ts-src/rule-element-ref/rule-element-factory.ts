@@ -4,7 +4,7 @@ import {
   loadFromModule,
   LoadSchema,
   LoggerAdapter,
-  ModuleResolution
+  ModuleResolution, TypeOf
 } from '@franzzemen/app-utility';
 import {isPromise} from 'node:util/types';
 import {ScopedFactory} from '../scope/scoped-factory.js';
@@ -29,7 +29,7 @@ export abstract class RuleElementFactory<C> implements ScopedFactory<C> {
     return ruleElement.instanceRef.instance;
   }
 
-  register(reference: RuleElementModuleReference | RuleElementInstanceReference<C>, override = false, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): C | Promise<C> {
+  register(reference: RuleElementModuleReference | RuleElementInstanceReference<C>, override = false, check?: CheckFunction | TypeOf, paramsArray?: any[], ec?: ExecutionContextI): C | Promise<C> {
     const log = new LoggerAdapter(ec, 'rules-engine', 'rule-element-ref-ref-factory', 'register');
     if(!reference.refName) {
       throw new Error('No reference name');

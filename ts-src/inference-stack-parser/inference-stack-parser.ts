@@ -1,5 +1,5 @@
 import {isPromise} from 'node:util/types';
-import {CheckFunction, ExecutionContextI, loadFromModule, LoggerAdapter} from '@franzzemen/app-utility';
+import {CheckFunction, ExecutionContextI, loadFromModule, LoggerAdapter, TypeOf} from '@franzzemen/app-utility';
 import {HasRefName} from '../util/has-ref-name.js';
 import {
   RuleElementInstanceReference,
@@ -226,10 +226,10 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     return this.getParser(refName, ec);
   }
 
-  private loadRuleElementReference(stackedParser: RuleElementModuleReference, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): RuleElementReference<InferenceParser> | Promise<RuleElementReference<InferenceParser>> {
+  private loadRuleElementReference(stackedParser: RuleElementModuleReference, check?: CheckFunction | TypeOf, paramsArray?: any[], ec?: ExecutionContextI): RuleElementReference<InferenceParser> | Promise<RuleElementReference<InferenceParser>> {
     const log = new LoggerAdapter(ec, '@franzzemen/re-common', 'inference-stack-parser', 'loadRuleElementReference');
-    if (!stackedParser?.module?.loadSchema?.validationSchema) {
-      log.warn(stackedParser, `No validation schema provided`);
+    if (!stackedParser?.module?.loadSchema && !check) {
+      log.warn(stackedParser, `No validation schema, CheckFunction or TypeOf provided`);
     }
     const instanceOrPromise = loadFromModule<InferenceParser>(stackedParser.module, paramsArray, check, ec);
     if (isPromise(instanceOrPromise)) {
