@@ -16,8 +16,8 @@ export class Scope extends Map<string, any> {
   public static ChildScopes = 'ChildScopes';
   public static ScopeName = 'ScopeName';
 
-
   public scopeName: string;
+  public throwOnAsync = false;
 
   constructor(protected options?: Options, parentScope?: Scope, ec?: ExecutionContextI) {
     super();
@@ -30,6 +30,9 @@ export class Scope extends Map<string, any> {
         parentScope.set(Scope.ChildScopes, childScopes);
       }
       childScopes.push(this);
+    }
+    if(options?.throwOnAsync !== undefined) {
+      this.throwOnAsync = options.throwOnAsync;
     }
   }
 
