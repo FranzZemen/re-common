@@ -6,6 +6,7 @@ import {
   LoggerAdapter,
   ModuleResolution, TypeOf
 } from '@franzzemen/app-utility';
+import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {isPromise} from 'node:util/types';
 import {ScopedFactory} from '../scope/scoped-factory.js';
 import {
@@ -32,7 +33,7 @@ export abstract class RuleElementFactory<C> implements ScopedFactory<C> {
   register(reference: RuleElementModuleReference | RuleElementInstanceReference<C>, override = false, check?: CheckFunction | TypeOf, paramsArray?: any[], ec?: ExecutionContextI): C | Promise<C> {
     const log = new LoggerAdapter(ec, 'rules-engine', 'rule-element-ref-ref-factory', 'register');
     if(!reference.refName) {
-      throw new Error('No reference name');
+      logErrorAndThrow(new Error('No reference name'), log, ec);
     }
     if(override === false && this.hasRegistered(reference.refName)) {
       log.warn(`Not registering refName ${reference.refName} and override is ${override}`);
@@ -48,9 +49,6 @@ export abstract class RuleElementFactory<C> implements ScopedFactory<C> {
           return instanceOrPromise
             .then(instance => {
               return this._registerBody(reference, instance, ec);
-            }, err => {
-              log.error(err);
-              throw err;
             })
         } else {
           return this._registerBody(reference, instanceOrPromise, ec);

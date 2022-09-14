@@ -1,3 +1,4 @@
+import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {isPromise} from 'node:util/types';
 import {CheckFunction, ExecutionContextI, loadFromModule, LoggerAdapter, TypeOf} from '@franzzemen/app-utility';
 import {HasRefName} from '../util/has-ref-name.js';
@@ -76,10 +77,6 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
               this.parserInferenceStack.push(stackedParser.refName);
             }
             return ruleElement.instanceRef.instance;
-          }, err => {
-            const log = new LoggerAdapter(ec, 're-re-common', 'inference-stack-parser', 'addParser');
-            log.error(err);
-            throw err;
           });
       } else {
         // Add whether override or new (not had)
@@ -131,11 +128,6 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
         return ruleElementOrPromise
           .then(ruleElement => {
             return this._addParserAtStackIndexBody(stackedParser, stackIndex, ruleElement, ec);
-          }, err => {
-            // Rare for error, create log here.
-            const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'addStackedParserAtStackIndex');
-            log.error(err);
-            throw err;
           });
       } else {
         return this._addParserAtStackIndexBody(stackedParser, stackIndex, ruleElementOrPromise, ec);
@@ -184,11 +176,11 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * @param inferenceStack
    * @param execContext
    */
-  orderInferenceStack(inferenceStack: string[], execContext?: ExecutionContextI) {
+  orderInferenceStack(inferenceStack: string[], ec?: ExecutionContextI) {
     // All the inference refs must be already loaded.
     if (inferenceStack.every(newInference => {
       if (!this.parserMap.has(newInference)) {
-        const log = new LoggerAdapter(execContext, 're-common', 'inference-stack-parser', 'setInferenceStack');
+        const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'setInferenceStack');
         log.warn(`inference ${newInference} was not previously loaded`);
         return false;
       } else return true;
@@ -198,11 +190,10 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
         this.parserInferenceStack.push(newInference);
       });
     } else {
-      const log = new LoggerAdapter(execContext, 're-common', 'inference-stack-parser', 'setInferenceStack');
+      const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'setInferenceStack');
       log.warn({inferenceStack, existingStack: this.parserInferenceStack}, 'Mismatch in stack contents');
       const err = new Error(`Mismatch in stack contents`);
-      log.error(err);
-      throw err;
+      logErrorAndThrow(err, log, ec);
     }
   }
 
@@ -210,7 +201,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     if (!isRuleElementInstanceReference(reference)) {
       return this.addParser(reference, override = false, check, paramsArray, ec);
     } else {
-      throw new Error('Not applicable');
+      logErrorAndThrow(new Error('Not applicable'), undefined, ec);
     }
   }
 
@@ -239,9 +230,6 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
             instanceRef: {refName: stackedParser.refName, instance: instance},
             moduleRef: stackedParser
           };
-        }, err => {
-          log.error(err);
-          throw err;
         });
     } else {
       return {
@@ -263,8 +251,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     } else {
       const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parser', '_addParserAtStackIndexBody');
       const err = new Error(`Attempt to add stacked parser ${stackedParser.refName} at position ${stackIndex} outside of stack size`);
-      log.error(err);
-      throw err;
+      logErrorAndThrow(err, log, ec);
     }
   }
 }

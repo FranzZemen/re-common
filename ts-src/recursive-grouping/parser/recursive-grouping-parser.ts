@@ -1,4 +1,5 @@
 import {ExecutionContextI, LoggerAdapter} from '@franzzemen/app-utility';
+import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {FragmentParser} from './fragment-parser.js';
 import {Fragment, RecursiveGrouping} from '../recursive-grouping.js';
 
@@ -134,8 +135,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
       return [text, defaultOperator];
     } else {
       const err = new Error(`Expected operator near ${text}`);
-      log.error(err);
-      throw err;
+      logErrorAndThrow(err, log, ec);
     }
   }
 }

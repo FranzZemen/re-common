@@ -1,4 +1,5 @@
  import {CheckFunction, ExecutionContextI, LoggerAdapter, ModuleResolution} from '@franzzemen/app-utility';
+ import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {isPromise} from 'node:util/types';
 import {v4} from 'uuid';
 import {
@@ -134,10 +135,6 @@ export class Scope extends Map<string, any> {
         return valueOrPromise
           .then(value => {
             return true;
-          }, err=> {
-            const log = new LoggerAdapter(ec, 're-common', 'scope', 'overrideScopes');
-            log.error(err);
-            throw err;
           });
       } else {
         return true;
@@ -262,8 +259,7 @@ export class Scope extends Map<string, any> {
           } else {
             const log = new LoggerAdapter(ec, 're-common', 'scope', 'reParent');
             const err = new Error ('Scope inconsistency...child scope not found in parent scope when re-parenting');
-            log.error(err);
-            throw err;
+            logErrorAndThrow(err, log, ec);
           }
         }
       }

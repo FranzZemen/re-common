@@ -5,6 +5,7 @@ import {
   LoggerAdapter,
   ModuleDefinition
 } from '@franzzemen/app-utility';
+import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {HintKey} from './hint-key.js';
 
 /**
@@ -60,8 +61,7 @@ export function loadModuleDefinitionFromHints(
     const constructorName = hints.get(moduleConstructorNameKey) as string;
     if (functionName && constructorName) {
       const err = new Error(`Both function name ${functionName} and constructor name ${constructorName} provided, only one should be`);
-      log.error(err);
-      throw err;
+      logErrorAndThrow(err, log, ec);
     }
     module = {moduleName, functionName, constructorName};
   } else {
@@ -79,8 +79,7 @@ export function loadModuleDefinitionFromHints(
           }
         } catch (err) {
           log.warn(json, `Expected JSON for ${HintKey.Module} hint`);
-          log.error(err);
-          throw err;
+          logErrorAndThrow(err, log, ec);
         }
       }
     }

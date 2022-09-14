@@ -1,4 +1,5 @@
 import {ExecutionContextI, ModuleResolution} from '@franzzemen/app-utility';
+import {EnhancedError} from '@franzzemen/app-utility/enhanced-error.js';
 import chai from 'chai';
 import 'mocha';
 import Validator from 'fastest-validator';
