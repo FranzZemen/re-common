@@ -6,4 +6,6 @@ export class HintKey {
   static ModuleName = 'module-name';
   static FunctionName = 'function-name';
   static ConstructorName = 'constructor-name';
+  static ModuleResolutionName = 'module-resolution';
+  static LoadSchemaName = 'load-schema';
 }
