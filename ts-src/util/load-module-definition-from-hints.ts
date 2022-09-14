@@ -1,9 +1,9 @@
 import {
   ExecutionContextI,
   Hints,
-  isConstrainedModuleDefinition,
+  isConstrainedModuleDefinition, LoadSchema,
   LoggerAdapter,
-  ModuleDefinition
+  ModuleDefinition, ModuleResolution
 } from '@franzzemen/app-utility';
 import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {HintKey} from './hint-key.js';
@@ -50,7 +50,9 @@ export function loadModuleDefinitionFromHints(
   moduleKey = HintKey.Module,
   moduleNameKey = HintKey.ModuleName,
   moduleFunctionNameKey = HintKey.FunctionName,
-  moduleConstructorNameKey = HintKey.ConstructorName): ModuleDefinition {
+  moduleConstructorNameKey = HintKey.ConstructorName,
+  moduleResolutionKey = HintKey.ModuleResolutionName,
+  loadSchemaKey = HintKey.LoadSchemaName): ModuleDefinition {
 
   const log = new LoggerAdapter(ec, 'rules-engine', 'load-module-definition-from-hints', 'loadModuleDefinitionFromHints');
   let module: ModuleDefinition;
@@ -63,7 +65,9 @@ export function loadModuleDefinitionFromHints(
       const err = new Error(`Both function name ${functionName} and constructor name ${constructorName} provided, only one should be`);
       logErrorAndThrow(err, log, ec);
     }
-    module = {moduleName, functionName, constructorName};
+    const moduleResolution = hints.get(moduleResolutionKey) as ModuleResolution;
+    const loadSchema = hints.get(loadSchemaKey) as LoadSchema;
+    module = {moduleName, functionName, constructorName, moduleResolution, loadSchema};
   } else {
     const obj = hints.get(moduleKey);
     if(typeof obj === 'object') {
