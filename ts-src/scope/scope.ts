@@ -65,17 +65,18 @@ export class Scope extends Map<string, any> {
         } else {
           // If no ancestor existed, then just set the data type at this scope level
           // Ignore result, but wait for promise to settle, so order is kept.
-          await factory.register(item, true, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec);
+          let c:C = await factory.register(item, true, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec);
         }
       } else {
         // If the override flag is false, then set at this level, but don't override what's in the factory
-        await factory.register(item, false, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec);
+        let c:C = await factory.register(item, false, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec);
       }
       if (overrideDown) {
         // Remove all child hierarchy data types
         this.recurseRemoveScopedFactoryChildItems<C>([item.refName], factoryKey, ec);
       }
     }
+    return Promise.resolve();
   }
 
   addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, checks?: CheckFunction[], paramsArrays?: any[][], ec?: ExecutionContextI): void | Promise<void> {
