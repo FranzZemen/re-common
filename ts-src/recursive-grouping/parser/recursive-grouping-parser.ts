@@ -1,7 +1,8 @@
 import {ExecutionContextI, LoggerAdapter} from '@franzzemen/app-utility';
-import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
+import {EnhancedError, logErrorAndReturn, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
+import {isPromise} from 'node:util/types';
 import {FragmentParser} from './fragment-parser.js';
-import {Fragment, RecursiveGrouping} from '../recursive-grouping.js';
+import {Fragment, isRecursiveGrouping, isRecursiveGroupingOrAny, RecursiveGrouping} from '../recursive-grouping.js';
 
 
 
@@ -9,6 +10,7 @@ import {Fragment, RecursiveGrouping} from '../recursive-grouping.js';
 export class RecursiveGroupingParser<OperatorType, Reference> {
   constructor(private fragmentParser: FragmentParser<Reference>) {
   }
+
   /**
    *
    * @param text
@@ -25,28 +27,96 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
    * @param ec
    * @return If the RecursiveGrouping is undefined, an end condition was immediately encountered and processing should proceed with that info
    */
-  parse(text: string, scope: Map<string, any>, operators: OperatorType[], defaultOperator: OperatorType, endConditionTests: RegExp[], ec?: ExecutionContextI): [string, RecursiveGrouping<OperatorType, Reference>, EndConditionType];
-  parse(text: string, scope: Map<string, any>, operators: OperatorType[], defaultOperator: OperatorType, endConditionTests: RegExp[], groupOperator: OperatorType, ec?: ExecutionContextI): [string, RecursiveGrouping<OperatorType, Reference>, EndConditionType];
-  parse(text: string, scope: Map<string, any>, operators: OperatorType[], defaultOperator: OperatorType, endConditionTests: RegExp[], groupOperator?: OperatorType, ec?: ExecutionContextI): [string, RecursiveGrouping<OperatorType, Reference>, EndConditionType] {
-    // Immediate test end conditions
-    let [remaining, endCondition] = this.testEndCondition(text, endConditionTests, ec);
-    if(endCondition !== EndConditionType.Noop) {
-      return [remaining, undefined, endCondition];
-    }
-    // Begin "this group" aka "this level
+  parse(text: string,
+        scope: Map<string, any>,
+        operators: OperatorType[],
+        defaultOperator: OperatorType,
+        endConditionTests: RegExp[],
+        ec?: ExecutionContextI): [string, RecursiveGrouping<OperatorType, Reference> | Promise<RecursiveGrouping<OperatorType, Reference>>, EndConditionType];
+  parse(text: string,
+        scope: Map<string, any>,
+        operators: OperatorType[],
+        defaultOperator: OperatorType,
+        endConditionTests: RegExp[],
+        groupOperator: OperatorType,
+        ec?: ExecutionContextI): [string, RecursiveGrouping<OperatorType, Reference> | Promise<RecursiveGrouping<OperatorType, Reference>>, EndConditionType];
+  parse(text: string,
+        scope: Map<string, any>,
+        operators: OperatorType[],
+        defaultOperator: OperatorType,
+        endConditionTests: RegExp[],
+        groupOperator?: OperatorType,
+        ec?: ExecutionContextI): [string, RecursiveGrouping<OperatorType, Reference> | Promise<RecursiveGrouping<OperatorType, Reference>>, EndConditionType] {
     let operator = groupOperator;
-    if(!operator) {
+    if (!operator) {
       operator = defaultOperator;
     }
-    const thisGroup: RecursiveGrouping<OperatorType, Reference> = {group:[], operator};
+    const log = new LoggerAdapter(ec, 're-common', 'recursive-grouping-parser', 'parse');
+    const [remaining, groupsResultsOrPromises, endCondition, fragmentOperators] = this._recursion(text, scope, operators, defaultOperator, endConditionTests, groupOperator, ec);
+    if(groupsResultsOrPromises === undefined) {
+      return [remaining, undefined, endCondition];
+    }
+    const async = groupsResultsOrPromises.some(groupResult => isPromise(groupResult));
+    if (async) {
+      const groupingsPromise: Promise<RecursiveGrouping<OperatorType, Reference>> = Promise.all(groupsResultsOrPromises)
+        .then(groupResults => {
+          const thisGroup: RecursiveGrouping<OperatorType, Reference> = {group: [], operator};
+          groupResults.forEach((groupResult,ndx) => {
+            if (isRecursiveGroupingOrAny(groupResult)) {
+              thisGroup.group.push(groupResult);
+              } else {
+              const fragment: Fragment<OperatorType, Reference> = {operator: fragmentOperators[ndx], reference: groupResult};
+              thisGroup.group.push(fragment);
+            }
+          });
+          return thisGroup;
+        })
+      return [remaining, groupingsPromise, endCondition];
+    } else {
+      const thisGroup: RecursiveGrouping<OperatorType, Reference> = {group: [], operator};
+      groupsResultsOrPromises.forEach((groupResult, ndx) => {
+        if (isPromise(groupResult)) {
+          logErrorAndThrow(new EnhancedError('Promise not possible here'), log, ec);
+        } else {
+          if (isRecursiveGroupingOrAny(groupResult)) {
+            thisGroup.group.push(groupResult);
+          } else {
+            const fragment: Fragment<OperatorType, Reference> = {operator: fragmentOperators[ndx], reference: groupResult};
+            thisGroup.group.push(fragment);
+          }
+        }
+      });
+      return [remaining, thisGroup, endCondition];
+    }
+  }
 
+
+  private _recursion(text: string,
+                     scope: Map<string, any>,
+                     operators: OperatorType[],
+                     defaultOperator: OperatorType,
+                     endConditionTests: RegExp[],
+                     groupOperator?: OperatorType,
+                     ec?: ExecutionContextI)
+    :[string, (Reference | Promise<Reference> | RecursiveGrouping<OperatorType, Reference> | Promise<RecursiveGrouping<OperatorType, Reference>>)[], EndConditionType, OperatorType[]] {
+
+    const log = new LoggerAdapter(ec, 're-common', 'recursive-grouping-parser', '_recursion');
+    // Immediate test end conditions
+    let [remaining, endCondition] = this.testEndCondition(text, endConditionTests, ec);
+    if (endCondition !== EndConditionType.Noop) {
+      return [remaining,  undefined, endCondition, undefined];
+    }
+
+    let subGroups: (Reference | Promise<Reference> | RecursiveGrouping<OperatorType, Reference> | Promise<RecursiveGrouping<OperatorType, Reference>>)[] = [];
+    let fragmentOperators: OperatorType[] = [];
     // Iterate at this level, and recurse when a sub group is encountered.
     // Stop when and end condition is encountered
-    while(remaining.length) {
+    while (remaining.length) {
       // Get the operator either for the next subgroup or the next fragment.  If it will be the FIRST one in "this" group
       // allow the default to be added.  It would be an error condition for an inner group or fragment not to heave an operator
       // in the text.
-      [remaining, operator] = this.parseOperator(remaining, operators, thisGroup.group.length === 0, defaultOperator, ec);
+      let operator: OperatorType;
+      [remaining, operator] = this.parseOperator(remaining, operators, subGroups.length === 0, defaultOperator, ec);
       // Possibilities:
       // a) We won't immediately hit an end condition, because we just checked for that
       // 1. We encounter a sub-group (starts with '(').  We recurse on it and add it to the thisGroup (even if it is the "only"
@@ -55,34 +125,40 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
 
       // Test and consume a nested group opening bracket
       const subGroupResult = /^\(([^]*)$/.exec(remaining);
-      if(subGroupResult) {
+      if (subGroupResult) {
+        fragmentOperators.push(undefined);
         remaining = subGroupResult[1].trim();
-        let subGroup: RecursiveGrouping<OperatorType, Reference>;
+        let subGroup: RecursiveGrouping<OperatorType, Reference> | Promise<RecursiveGrouping<OperatorType, Reference>>;
+
         [remaining, subGroup, endCondition] = this.parse(remaining, scope, operators, defaultOperator, endConditionTests, operator, ec);
-        if(subGroup) {
-          thisGroup.group.push(subGroup);
+
+        if (subGroup) {
+          subGroups.push(subGroup);
         }
         // We continue until we find an end to all the grouping, or end of input.  End of sub group just means wthat we move
         // to the next sub group or fragment in this group.
-        if(endCondition === EndConditionType.GroupingEnd || endCondition === EndConditionType.InputEnd) {
-          return [remaining, thisGroup, endCondition];
+        if (endCondition === EndConditionType.GroupingEnd || endCondition === EndConditionType.InputEnd) {
+          break;
         }
       } else {
-        let reference:Reference
+        fragmentOperators.push(operator);
+        let reference: Reference | Promise<Reference>;
         [remaining, reference] = this.fragmentParser.parse(remaining, scope, ec);
-        const fragment: Fragment<OperatorType, Reference> = {operator, reference};
-        thisGroup.group.push(fragment);
+        if (reference) {
+          subGroups.push(reference);
+        }
         // Check end condition
-        [remaining,endCondition] = this.testEndCondition(remaining, endConditionTests, ec);
-        if(endCondition !== EndConditionType.Noop) {
-          return [remaining, thisGroup, endCondition];
+        [remaining, endCondition] = this.testEndCondition(remaining, endConditionTests, ec);
+        if (endCondition !== EndConditionType.Noop) {
+          break;
         }
       }
       [remaining, endCondition] = this.testEndCondition(remaining, endConditionTests, ec);
-      if(endCondition !== EndConditionType.Noop) {
-        return [remaining, thisGroup, endCondition];
+      if (endCondition !== EndConditionType.Noop) {
+        break;
       }
     }
+    return [remaining, subGroups, endCondition, fragmentOperators];
   }
 
   /**
@@ -94,16 +170,16 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
    * @return CurrentGroupingEnd means we encountered a closing bracket, GroupingEnd means we encountered a tested end
    * condition, and InputEnd means we're at the end of the text
    */
-  testEndCondition(text: string, endConditions: RegExp[],ec?: ExecutionContextI): [string, EndConditionType] {
+  testEndCondition(text: string, endConditions: RegExp[], ec?: ExecutionContextI): [string, EndConditionType] {
     text = text.trim();
-    if(text.length === 0) {
+    if (text.length === 0) {
       return [text, EndConditionType.InputEnd];
     }
     const currentGroupingEndResult = /^\)([^]*)$/.exec(text);
-    if(currentGroupingEndResult) {
+    if (currentGroupingEndResult) {
       return [currentGroupingEndResult[1].trim(), EndConditionType.CurrentGroupingEnd];
     }
-    if(endConditions.some(regExp => regExp.test(text))) {
+    if (endConditions.some(regExp => regExp.test(text))) {
       return [text, EndConditionType.GroupingEnd];
     }
     return [text, EndConditionType.Noop];
@@ -123,15 +199,15 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
     const log = new LoggerAdapter(ec, 'rules-engine', 'recursive-grouping-parser', RecursiveGroupingParser.name + 'parseOperator');
     // Operators are bounded by whitespace (but text will be trimmed at least on the start side...however
     // the end of the operator must have whitespace before any further text
-    for(let i = 0; i < operators.length; i++) {
+    for (let i = 0; i < operators.length; i++) {
       const result = (new RegExp(`^${operators[i]}[\\s\\t\\r\\n\\v\\f\u2028\u2029]+([^]+)$`)).exec(text);
-      if(result) {
+      if (result) {
         return [result[1].trim(), operators[i]];
       }
     }
     // if we've made it this far, there is no operator, so go with the default (first in the list) if instructed to do so
     // Otherwise throw an exception for not finding the operator
-    if(addDefault) {
+    if (addDefault) {
       return [text, defaultOperator];
     } else {
       const err = new Error(`Expected operator near ${text}`);

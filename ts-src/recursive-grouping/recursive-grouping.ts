@@ -9,13 +9,17 @@ export interface Fragment<OperatorType, Reference> {
   reference: Reference
 }
 
-export type FragmentOrGrouping<OperatorType, Reference> = Fragment<OperatorType, Reference>|RecursiveGrouping<OperatorType, Reference>;
+export type FragmentOrGrouping<OperatorType, Reference> = Fragment<OperatorType, Reference>| RecursiveGrouping<OperatorType, Reference>;
 
 export function isFragment(fragment: FragmentOrGrouping<any, any>): fragment is Fragment<any, any> {
   return 'reference' in fragment;
 }
 
 export function isRecursiveGrouping(grouping: FragmentOrGrouping<any, any>): grouping is RecursiveGrouping<any, any> {
+  return 'group' in grouping;
+}
+
+export function isRecursiveGroupingOrAny(grouping: any | RecursiveGrouping<any, any>): grouping is RecursiveGrouping<any, any> {
   return 'group' in grouping;
 }
 
