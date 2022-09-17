@@ -51,8 +51,9 @@ export class Scope extends Map<string, any> {
     return undefined;
   }
 
-  private async _addScopedFactoryItemsAsync<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, checks?: CheckFunction[], paramsArrays?: any[][], ec?: ExecutionContextI): Promise<void> {
+  private _addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, checks?: CheckFunction[], paramsArrays?: any[][], ec?: ExecutionContextI): C[] | Promise<C[]> {
     const factory: ScopedFactory<C> = this.get(factoryKey);
+    const instancesOrPromisesOfInstances: (C | Promise<C>)[] = [];
     for(let ndx = 0; ndx < items.length; ndx++) {
       const item = items[ndx];
       if (override) {
@@ -65,52 +66,31 @@ export class Scope extends Map<string, any> {
         } else {
           // If no ancestor existed, then just set the data type at this scope level
           // Ignore result, but wait for promise to settle, so order is kept.
-          let c:C = await factory.register(item, true, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec);
+          let c: C | Promise<C> = factory.register(item, true, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec);
+          instancesOrPromisesOfInstances.push(c);
         }
       } else {
         // If the override flag is false, then set at this level, but don't override what's in the factory
-        let c:C = await factory.register(item, false, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec);
+        let c: C | Promise<C> = factory.register(item, false, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec);
+        instancesOrPromisesOfInstances.push(c);
       }
       if (overrideDown) {
         // Remove all child hierarchy data types
         this.recurseRemoveScopedFactoryChildItems<C>([item.refName], factoryKey, ec);
       }
     }
-    return Promise.resolve();
+    const hasAsync = instancesOrPromisesOfInstances.some(instancesOrPromisesOfInstance => isPromise(instancesOrPromisesOfInstance));
+    if(hasAsync) {
+      return Promise.all(instancesOrPromisesOfInstances) as Promise<C[]>;
+    } else {
+      return instancesOrPromisesOfInstances as C[];
+    }
   }
 
-  addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, checks?: CheckFunction[], paramsArrays?: any[][], ec?: ExecutionContextI): void | Promise<void> {
+  addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, checks?: CheckFunction[], paramsArrays?: any[][], ec?: ExecutionContextI): C[] | Promise<C[]> {
     const log = new LoggerAdapter(ec, 'rules-engine', 'scope-functions', 'add');
     if (items?.length > 0) {
-
-      // Verify if any modules will cause async processing.
-      const hasAsync = items.some(item => isRuleElementModuleReference(item) && item.module.moduleResolution === ModuleResolution.es);
-      if (hasAsync) {
-        return this._addScopedFactoryItemsAsync(items, factoryKey, override, overrideDown, checks, paramsArrays, ec);
-      } else {
-        const factory: ScopedFactory<C> = this.get(factoryKey);
-        items.forEach((item, ndx) => {
-          if (override) {
-            // Clear anscestors, adding the data type to the furthest ancestor
-            if (this.overrideScopedFactoryItemInScopes(item, factoryKey, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec)) {
-              // IF ancestor existed (overrideDataType = true), then clear this dataFactory
-              if (factory.hasRegistered(item.refName, ec)) {
-                factory.unregister(item.refName, ec);
-              }
-            } else {
-              // If no ancestor existed, then just set the data type at this scope level
-              factory.register(item, true, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec);
-            }
-          } else {
-            // If the override flag is false, then set at this level, but don't override what's in the factory
-            factory.register(item, false, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec);
-          }
-          if (overrideDown) {
-            // Remove all child hierarchy data types
-            this.recurseRemoveScopedFactoryChildItems<C>([item.refName], factoryKey, ec);
-          }
-        });
-      }
+      return this._addScopedFactoryItems(items, factoryKey, override, overrideDown, checks, paramsArrays, ec);
     }
   }
 
