@@ -191,7 +191,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * module, since ES modules can only be loaded dynamically through the asynchronous import().  Commonjs targets do not produce
    * asynchronous loads.
    */
-  addParserAtStackIndex(stackedParser: InferenceParser | RuleElementModuleReference, stackIndex: number, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): boolean | Promise<boolean> {
+  addParserAtStackIndex(stackedParser: InferenceParser | RuleElementModuleReference, stackIndex: number, ec?: ExecutionContextI): boolean | Promise<boolean> {
     const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'addStackedParserAtStackIndex');
     if (this.hasParser(stackedParser.refName)) {
       // Rarely if'ed.  Create log here.
