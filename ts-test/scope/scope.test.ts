@@ -129,11 +129,6 @@ describe('re-common tests', () => {
         const scope = new Scope();
         const factoryName = 'TestFactory';
         scope.set(factoryName, new RulesObjectImplFactory());
-        const validationSchema = {
-          refName: {type: 'string'},
-          someFoo: {type: 'string'},
-          thisSequence: {type: 'number'}
-        };
         const module1: RuleElementModuleReference = {
           refName: 'Type1',
           module: {
@@ -142,28 +137,36 @@ describe('re-common tests', () => {
             moduleResolution: ModuleResolution.es,
             loadSchema: {
               useNewCheckerFunction: true,
-              validationSchema
-            }
+              validationSchema: {
+                refName: {type: 'string'},
+                someFoo: {type: 'string'},
+                thisSequence: {type: 'number'}
+              }
+            },
+            paramsArray: ['First']
           }
         }
-        const paramsArray1 = ['First'];
 
         const module2: RuleElementModuleReference = {
           refName: 'Type2',
           module: {
             moduleName: '../../../testing/rule-element-ref/rule-element-impl.js',
             constructorName: 'RuleElementImpl',
-            moduleResolution: ModuleResolution.es
+            moduleResolution: ModuleResolution.es,
+            paramsArray: ['Second'],
+            loadSchema: (new Validator()).compile({
+              refName: {type: 'string'},
+              someFoo: {type: 'string'},
+              thisSequence: {type: 'number'}
+            })
           }
         }
-        const paramsArray2 = ['Second'];
-        const checker2: CheckFunction = (new Validator()).compile(validationSchema);
 
         const item3: RuleElementInstanceReference<RuleElementImpl> = {
           refName: 'Type3',
           instance: new RuleElementImpl('Third')
         }
-        const result = scope.addScopedFactoryItems([module1, module2, item3], factoryName, false, false, [undefined, checker2, undefined ], [paramsArray1, paramsArray2, undefined]);
+        const result = scope.addScopedFactoryItems([module1, module2, item3], factoryName, false, false);
         if(isPromise(result)) {
           result.then ((impls)=> {
             impls.length.should.equal(3);

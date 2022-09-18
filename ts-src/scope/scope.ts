@@ -1,12 +1,8 @@
- import {CheckFunction, ExecutionContextI, LoggerAdapter, ModuleResolution} from '@franzzemen/app-utility';
- import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
+import {ExecutionContextI, LoggerAdapter} from '@franzzemen/app-utility';
+import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {isPromise} from 'node:util/types';
 import {v4} from 'uuid';
-import {
-  isRuleElementModuleReference,
-  RuleElementInstanceReference,
-  RuleElementModuleReference
-} from '../rule-element-ref/rule-element-reference.js';
+import {RuleElementInstanceReference, RuleElementModuleReference} from '../rule-element-ref/rule-element-reference.js';
 import {HasRefName} from '../util/has-ref-name.js';
 import {Options} from './options.js';
 import {ScopedFactory} from './scoped-factory.js';
@@ -51,14 +47,14 @@ export class Scope extends Map<string, any> {
     return undefined;
   }
 
-  private _addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, checks?: CheckFunction[], paramsArrays?: any[][], ec?: ExecutionContextI): C[] | Promise<C[]> {
+  private _addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI): C[] | Promise<C[]> {
     const factory: ScopedFactory<C> = this.get(factoryKey);
     const instancesOrPromisesOfInstances: (C | Promise<C>)[] = [];
     for(let ndx = 0; ndx < items.length; ndx++) {
       const item = items[ndx];
       if (override) {
         // Clear anscestors, adding the data type to the furthest ancestor
-        if (this.overrideScopedFactoryItemInScopes(item, factoryKey, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec)) {
+        if (this.overrideScopedFactoryItemInScopes(item, factoryKey, ec)) {
           // IF ancestor existed (overrideDataType = true), then clear this dataFactory
           if (factory.hasRegistered(item.refName, ec)) {
             factory.unregister(item.refName, ec);
@@ -66,12 +62,12 @@ export class Scope extends Map<string, any> {
         } else {
           // If no ancestor existed, then just set the data type at this scope level
           // Ignore result, but wait for promise to settle, so order is kept.
-          let c: C | Promise<C> = factory.register(item, true, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec);
+          let c: C | Promise<C> = factory.register(item, true, ec);
           instancesOrPromisesOfInstances.push(c);
         }
       } else {
         // If the override flag is false, then set at this level, but don't override what's in the factory
-        let c: C | Promise<C> = factory.register(item, false, checks? checks[ndx] : undefined, paramsArrays ? paramsArrays[ndx]: undefined, ec);
+        let c: C | Promise<C> = factory.register(item, false, ec);
         instancesOrPromisesOfInstances.push(c);
       }
       if (overrideDown) {
@@ -87,14 +83,14 @@ export class Scope extends Map<string, any> {
     }
   }
 
-  addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, checks?: CheckFunction[], paramsArrays?: any[][], ec?: ExecutionContextI): C[] | Promise<C[]> {
+  addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false,  ec?: ExecutionContextI): C[] | Promise<C[]> {
     const log = new LoggerAdapter(ec, 'rules-engine', 'scope-functions', 'add');
     if (items?.length > 0) {
-      return this._addScopedFactoryItems(items, factoryKey, override, overrideDown, checks, paramsArrays, ec);
+      return this._addScopedFactoryItems(items, factoryKey, override, overrideDown, ec);
     }
   }
 
-  private overrideScopedFactoryItemInScopes<C>(item: (RuleElementModuleReference | RuleElementInstanceReference<C>), factoryKey: string, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): boolean | Promise<boolean> {
+  private overrideScopedFactoryItemInScopes<C>(item: (RuleElementModuleReference | RuleElementInstanceReference<C>), factoryKey: string, ec?: ExecutionContextI): boolean | Promise<boolean> {
     // Start at the top of the stack
     let height = this.getScopeDepth(ec);
     let furthestAncestor: Map<string, any>;
@@ -111,7 +107,7 @@ export class Scope extends Map<string, any> {
     }
     if (furthestAncestor) {
       const ancestorFactory: ScopedFactory<C> = furthestAncestor.get(factoryKey);
-      const valueOrPromise = ancestorFactory.register(item, true, check, paramsArray, ec);
+      const valueOrPromise = ancestorFactory.register(item, true, ec);
       if(isPromise(valueOrPromise)) {
         return valueOrPromise
           .then(value => {

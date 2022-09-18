@@ -4,7 +4,7 @@ import {
   loadFromModule,
   LoadSchema,
   LoggerAdapter,
-  ModuleResolution, TypeOf
+  ModuleResolution, ModuleResolutionResult, ModuleResolutionSetter, TypeOf
 } from '@franzzemen/app-utility';
 import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {isPromise} from 'node:util/types';
@@ -18,7 +18,6 @@ import {
 
 export abstract class RuleElementFactory<C> implements ScopedFactory<C> {
   protected repo = new Map<string, RuleElementReference<C>>();
-
   constructor() {
   }
 
@@ -30,7 +29,7 @@ export abstract class RuleElementFactory<C> implements ScopedFactory<C> {
     return ruleElement.instanceRef.instance;
   }
 
-  register(reference: RuleElementModuleReference | RuleElementInstanceReference<C>, override = false, check?: CheckFunction | TypeOf, paramsArray?: any[], ec?: ExecutionContextI): C | Promise<C> {
+  register(reference: RuleElementModuleReference | RuleElementInstanceReference<C>, override = false, ec?: ExecutionContextI): C | Promise<C> {
     const log = new LoggerAdapter(ec, 'rules-engine', 'rule-element-ref-ref-factory', 'register');
     if(!reference.refName) {
       logErrorAndThrow(new Error('No reference name'), log, ec);
@@ -43,7 +42,7 @@ export abstract class RuleElementFactory<C> implements ScopedFactory<C> {
       if (this.repo.get(reference.refName) && override) {
         log.warn(`Overwriting registration for ${reference.refName} with override ${override}`);
       }
-      const instanceOrPromise: C | Promise<C> = loadFromModule<C>(reference.module, paramsArray, check, ec);
+      const instanceOrPromise: C | Promise<C> = loadFromModule<C>(reference.module, ec);
       if(instanceOrPromise) {
         if(isPromise(instanceOrPromise)) {
           return instanceOrPromise

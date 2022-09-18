@@ -20,10 +20,11 @@ describe('re-common tests', () => {
       module: {
         moduleName: '../../../testing/rule-element-ref/rule-element-impl.js',
         constructorName: 'RuleElementImpl',
-        moduleResolution: ModuleResolution.es
+        moduleResolution: ModuleResolution.es,
+        paramsArray:['hello']
       }
     };
-    const instanceOrPromise: RulesObjectImplI | Promise<RulesObjectImplI>= factory.register(ref, undefined, undefined, ['hello'],{config: {log: {level: 'debug'}}});
+    const instanceOrPromise: RulesObjectImplI | Promise<RulesObjectImplI>= factory.register(ref, undefined, {config: {log: {level: 'debug'}}});
     it('should register an instance using a constructor name and one parameter', () => {
       expect(instanceOrPromise).to.exist;
       if (isPromise(instanceOrPromise)) {

@@ -1,15 +1,24 @@
-import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
-import {isPromise} from 'node:util/types';
-import {CheckFunction, ExecutionContextI, loadFromModule, LoggerAdapter, TypeOf} from '@franzzemen/app-utility';
-import {HasRefName} from '../util/has-ref-name.js';
 import {
+  CheckFunction,
+  ExecutionContextI,
+  loadFromModule,
+  LoadPackageType,
+  LoggerAdapter, ModuleResolutionResult,
+  ModuleResolutionSetter,
+  ModuleResolver,
+  TypeOf
+} from '@franzzemen/app-utility';
+import {EnhancedError, logErrorAndReturn, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
+import {isPromise} from 'node:util/types';
+import {
+  isRuleElementInstanceReference,
+  isRuleElementModuleReference,
   RuleElementInstanceReference,
   RuleElementModuleReference,
-  RuleElementReference,
-  isRuleElementModuleReference,
-  isRuleElementInstanceReference
+  RuleElementReference
 } from '../rule-element-ref/rule-element-reference.js';
 import {ScopedFactory} from '../scope/scoped-factory.js';
+import {HasRefName} from '../util/has-ref-name.js';
 
 /**
  * The Inference Stack Parser provides base class behaviors for inference parsing.  Inference parsing is when a parser
@@ -38,6 +47,34 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    */
   abstract parse(remaining: string, scope: Map<string, any>, inferredContext?: any, ec?: ExecutionContextI): [string, any | Promise<any>];
 
+  resolveAddParser: ModuleResolutionSetter = (refName: string, parser: InferenceParser, resolutionResult?: ModuleResolutionResult, ec?: ExecutionContextI) => {
+    const inferenceParser = this.parserMap.get(refName)?.instanceRef?.instance;
+    this.parserMap.set(refName, {instanceRef: {instance:parser, refName: refName}});
+    if(!inferenceParser) {
+      this.parserInferenceStack.push(refName);
+    }
+    return true;
+  }
+
+  resolveAddParserAtStackIndex: ModuleResolutionSetter = (refName: string, parser: InferenceParser, resolutionResult: ModuleResolutionResult, ndx: number, ec?: ExecutionContextI) => {
+    const ruleElementRef: RuleElementReference<InferenceParser> = {
+      instanceRef: {
+        refName: refName,
+        instance: parser
+      },
+      moduleRef: {
+        refName: refName,
+        module: resolutionResult.resolution.module
+      }
+    }
+    try {
+      this._addParserAtStackIndexBody(parser, ndx, ruleElementRef, ec);
+      return true;
+    } catch (err) {
+      logErrorAndThrow(err, new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'resoloveAddParserAtStackIndex'), ec);
+    }
+  }
+
 
   /**
    * Add a parser to the end of the stack
@@ -53,7 +90,8 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * module, since ES modules can only be loaded dynamically through the asynchronous import().  Commonjs targets do not produce
    * asynchronous loads.
    */
-  addParser(stackedParser: InferenceParser | RuleElementModuleReference, override = false, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): InferenceParser | Promise<InferenceParser> {
+  addParser(stackedParser: InferenceParser | RuleElementModuleReference, override = false, ec?: ExecutionContextI): InferenceParser | Promise<InferenceParser> {
+    const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parse', 'addParser');
     const inferenceParser = this.parserMap.get(stackedParser.refName)?.instanceRef?.instance;
     if (inferenceParser && !override) {
       const log = new LoggerAdapter(ec, 'rules-engine', 'inference-stack-parser', 'addParser');
@@ -61,31 +99,68 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
       return inferenceParser;
     }
     if (override || inferenceParser === undefined) {
-      let ruleElementReferenceOrPromise: RuleElementReference<InferenceParser> | Promise<RuleElementReference<InferenceParser>>;
+      const moduleResolver = new ModuleResolver();
+
+     // let ruleElementReferenceOrPromise: RuleElementReference<InferenceParser> | Promise<RuleElementReference<InferenceParser>>;
       if (isRuleElementModuleReference(stackedParser)) {
-        ruleElementReferenceOrPromise = this.loadRuleElementReference(stackedParser, check, paramsArray, ec);
+        moduleResolver.add({
+          refName: stackedParser.refName,
+          module: stackedParser.module,
+          ownerIsObject: true,
+          ownerThis: this,
+          ownerSetter: 'resolveAddParser',
+          paramsArray: [ec],
+          loadPackageType: LoadPackageType.package
+        });
+        //ruleElementReferenceOrPromise = this.loadRuleElementReference(stackedParser, check, paramsArray, ec);
       } else {
-        ruleElementReferenceOrPromise = {instanceRef: {instance: stackedParser, refName: stackedParser.refName}};
-      }
-      if (isPromise(ruleElementReferenceOrPromise)) {
-        return ruleElementReferenceOrPromise
-          .then(ruleElement => {
-            // Add whether override or new (not had)
-            this.parserMap.set(stackedParser.refName, ruleElement);
-            if (!inferenceParser) {
-              // Add only if new (it's already there for an overrider)
-              this.parserInferenceStack.push(stackedParser.refName);
-            }
-            return ruleElement.instanceRef.instance;
-          });
-      } else {
-        // Add whether override or new (not had)
-        this.parserMap.set(stackedParser.refName, ruleElementReferenceOrPromise);
-        if (!inferenceParser) {
-          // Add only if new (it's already there for an overrider)
+        this.parserMap.set(stackedParser.refName, {instanceRef: {instance:stackedParser, refName: stackedParser.refName}});
+        if(!inferenceParser) {
           this.parserInferenceStack.push(stackedParser.refName);
         }
-        return ruleElementReferenceOrPromise.instanceRef.instance;
+        return stackedParser;
+        // ruleElementReferenceOrPromise = {instanceRef: {instance: stackedParser, refName: stackedParser.refName}};
+      }
+      if(moduleResolver.hasPendingResolutions()) {
+        const resolutionsOrPromises = moduleResolver.resolve(ec);
+        if (isPromise(resolutionsOrPromises)) {
+          return resolutionsOrPromises
+            .then(resolutions => {
+              const someErrors = resolutions.some(resolution => resolution.error);
+              if(someErrors) {
+                log.warn(resolutions, 'Errors resolving modules');
+                logErrorAndThrow(new EnhancedError('Errors resolving modules'), log, ec);
+              } else {
+                const addedParser = this.parserMap.get(stackedParser.refName)?.instanceRef?.instance;
+                if(!addedParser) {
+                  log.warn(resolutionsOrPromises, 'ModuleReference not added');
+                  logErrorAndThrow(new EnhancedError('ModuleReference not added'), log, ec);
+                } else {
+                  return addedParser;
+                }
+              }
+            });
+        } else {
+          const someErrors = resolutionsOrPromises.some(resolution => resolution.error);
+          if(someErrors) {
+            log.warn(resolutionsOrPromises, 'Errors resolving modules');
+            logErrorAndThrow(new EnhancedError('Errors resolving modules'), log, ec);
+          } else {
+            const addedParser = this.parserMap.get(stackedParser.refName)?.instanceRef?.instance;
+            if(!addedParser) {
+              log.warn(resolutionsOrPromises, 'ModuleReference not added');
+              logErrorAndThrow(new EnhancedError('ModuleReference not added'), log, ec);
+            } else {
+              return addedParser;
+            }
+          }
+          const addedParser = this.parserMap.get(stackedParser.refName)?.instanceRef?.instance;
+          if(!addedParser) {
+            log.warn(resolutionsOrPromises, 'ModuleReference not added');
+            logErrorAndThrow(new EnhancedError('ModuleReference not added'))
+          }
+          return this.parserMap.get(stackedParser.refName)?.instanceRef?.instance;
+        }
       }
     } else {
       return inferenceParser;
@@ -117,20 +192,44 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * asynchronous loads.
    */
   addParserAtStackIndex(stackedParser: InferenceParser | RuleElementModuleReference, stackIndex: number, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): boolean | Promise<boolean> {
+    const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'addStackedParserAtStackIndex');
     if (this.hasParser(stackedParser.refName)) {
       // Rarely if'ed.  Create log here.
-      const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'addStackedParserAtStackIndex');
       log.warn(`Not adding existing parser ${stackedParser.refName}`);
       return false;
     } else if (isRuleElementModuleReference(stackedParser)) {
-      let ruleElementOrPromise = this.loadRuleElementReference(stackedParser, check, paramsArray, ec);
-      if (isPromise(ruleElementOrPromise)) {
-        return ruleElementOrPromise
-          .then(ruleElement => {
-            return this._addParserAtStackIndexBody(stackedParser, stackIndex, ruleElement, ec);
+      const moduleResolver = new ModuleResolver();
+      moduleResolver.add({
+        refName: stackedParser.refName,
+        module: stackedParser.module,
+        ownerIsObject: true,
+        ownerThis: this,
+        ownerSetter: 'resolveAddParserAtStackIndex',
+        paramsArray: [stackIndex, ec],
+        loadPackageType: LoadPackageType.package
+      });
+      const resolutionsOrPromises = moduleResolver.resolve(ec);
+      if(isPromise(resolutionsOrPromises)) {
+        return resolutionsOrPromises
+          .then(resolutions => {
+            const someErrors = resolutions.some(resolution => resolution.error);
+            if(someErrors) {
+              log.warn(resolutionsOrPromises, 'Errors loading');
+              logErrorAndThrow(new EnhancedError('Errors loading'), log, ec);
+            } else {
+              return true;
+            }
+          }, err => {
+            throw logErrorAndReturn(err, log, ec);
           });
       } else {
-        return this._addParserAtStackIndexBody(stackedParser, stackIndex, ruleElementOrPromise, ec);
+        const someErrors = resolutionsOrPromises.some(resolution => resolution.error);
+        if(someErrors) {
+          log.warn(resolutionsOrPromises, 'Errors loading');
+          logErrorAndThrow(new EnhancedError('Errors loading'), log, ec);
+        } else {
+          return true;
+        }
       }
     } else {
       return this._addParserAtStackIndexBody(stackedParser, stackIndex, {
@@ -197,9 +296,9 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     }
   }
 
-  register(reference: InferenceParser | RuleElementModuleReference | RuleElementInstanceReference<InferenceParser>, override, check?: CheckFunction, paramsArray?: any[], ec?: ExecutionContextI): InferenceParser | Promise<InferenceParser> {
+  register(reference: InferenceParser | RuleElementModuleReference | RuleElementInstanceReference<InferenceParser>, override, ec?: ExecutionContextI): InferenceParser | Promise<InferenceParser> {
     if (!isRuleElementInstanceReference(reference)) {
-      return this.addParser(reference, override = false, check, paramsArray, ec);
+      return this.addParser(reference, false, ec);
     } else {
       logErrorAndThrow(new Error('Not applicable'), undefined, ec);
     }
@@ -215,28 +314,6 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
 
   getRegistered(refName: string, ec?: ExecutionContextI): InferenceParser {
     return this.getParser(refName, ec);
-  }
-
-  private loadRuleElementReference(stackedParser: RuleElementModuleReference, check?: CheckFunction | TypeOf, paramsArray?: any[], ec?: ExecutionContextI): RuleElementReference<InferenceParser> | Promise<RuleElementReference<InferenceParser>> {
-    const log = new LoggerAdapter(ec, '@franzzemen/re-common', 'inference-stack-parser', 'loadRuleElementReference');
-    if (!stackedParser?.module?.loadSchema && !check) {
-      log.warn(stackedParser, `No validation schema, CheckFunction or TypeOf provided`);
-    }
-    const instanceOrPromise = loadFromModule<InferenceParser>(stackedParser.module, paramsArray, check, ec);
-    if (isPromise(instanceOrPromise)) {
-      return instanceOrPromise
-        .then(instance => {
-          return {
-            instanceRef: {refName: stackedParser.refName, instance: instance},
-            moduleRef: stackedParser
-          };
-        });
-    } else {
-      return {
-        instanceRef: {refName: stackedParser.refName, instance: instanceOrPromise},
-        moduleRef: stackedParser
-      };
-    }
   }
 
   private _addParserAtStackIndexBody(stackedParser: InferenceParser | RuleElementModuleReference, stackIndex: number, ruleElement: RuleElementReference<InferenceParser>, ec?: ExecutionContextI): boolean {

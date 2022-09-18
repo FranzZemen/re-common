@@ -157,32 +157,28 @@ describe('re tests', () => {
         }
         try {
           const parser = inferenceStack.addParser(moduleRef);
+          unreachableCode.should.be.true;
         } catch (err) {
-          err.message.startsWith('Sync validation failed').should.be.true;
+          err.message.startsWith('Errors resolving modules').should.be.true;
         }
       })
-      it('should load an parser with a checker success, ignoring schema', () => {
+      it('should load an parser with a checker success', () => {
         const inferenceStack = new TestInferenceStackParser();
+        const check = (new Validator()).compile({
+          refName: {type: 'string'},
+          parse: {type: 'function'}
+        });
         const moduleRef: RuleElementModuleReference = {
           refName: 'CustomStackParser',
           module: {
             moduleName: '../../../testing/inference-stack-parser/custom-parser.cjs',
             constructorName: 'CustomParser',
             moduleResolution: ModuleResolution.commonjs,
-            loadSchema: {
-              useNewCheckerFunction: true,
-              validationSchema: {
-                refName: {type: 'number'},
-                parse: {type: 'function'}
-              }
-            }
+            loadSchema: check
           }
         }
-        const check = (new Validator()).compile({
-            refName: {type: 'string'},
-            parse: {type: 'function'}
-          });
-        const parser = inferenceStack.addParser(moduleRef,false,check);
+
+        const parser = inferenceStack.addParser(moduleRef,false);
         parser.should.exist;
         parser['refName'].should.equal('CustomParser1');
       })
