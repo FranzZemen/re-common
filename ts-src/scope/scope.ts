@@ -101,12 +101,12 @@ export class Scope extends Map<string, any> {
     }
   }
 
-  addInstanceResolver<C>(moduleResolver: ModuleResolver,
-                       factoryItems: (RuleElementInstanceReference<C> | RuleElementModuleReference)[],
-                       factoryKey: string,
-                       override = false,
-                       overrideDown = false,
-                       ec?: ExecutionContextI) {
+  addScopedFactoryItemsResolver<C>(moduleResolver: ModuleResolver,
+                                   factoryItems: (RuleElementInstanceReference<C> | RuleElementModuleReference)[],
+                                   factoryKey: string,
+                                   override = false,
+                                   overrideDown = false,
+                                   ec?: ExecutionContextI) {
 
     const instanceRefs: RuleElementInstanceReference<C>[] = factoryItems.filter(factoryItem => isRuleElementInstanceReference(factoryItem)) as RuleElementInstanceReference<C>[];
     const moduleRefs: RuleElementModuleReference[] = factoryItems.filter(factoryItem => isRuleElementModuleReference(factoryItem)) as RuleElementModuleReference[];
