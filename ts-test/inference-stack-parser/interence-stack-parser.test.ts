@@ -1,8 +1,7 @@
-import {ExecutionContextI, ModuleResolution} from '@franzzemen/app-utility';
-import {EnhancedError} from '@franzzemen/app-utility/enhanced-error.js';
+import {ExecutionContextI, ModuleResolution, ModuleResolver} from '@franzzemen/app-utility';
 import chai from 'chai';
-import 'mocha';
 import Validator from 'fastest-validator';
+import 'mocha';
 import {InferenceStackParser, RuleElementModuleReference} from '../../publish/index.js';
 import {TestParser} from './test-parser.js';
 
@@ -17,7 +16,7 @@ describe('re tests', () => {
       // Test class to test aba\stract base class functionality
       class TestInferenceStackParser extends InferenceStackParser<TestParser> {
         // We're not actually testing parsing so leave as is.
-        parse(remaining: string, scope: Map<string, any>, inferredContext: any, execContext: ExecutionContextI | undefined): [string, any] {
+        parse(moduleResolver: ModuleResolver, remaining: string, scope: Map<string, any>, inferredContext: any, execContext: ExecutionContextI | undefined): [string, any] {
           return ['', undefined];
         }
 

@@ -1,4 +1,4 @@
-import {ExecutionContextI} from '@franzzemen/app-utility';
+import {ExecutionContextI, ModuleResolver} from '@franzzemen/app-utility';
 import chai from 'chai';
 import 'mocha';
 import {isPromise} from 'node:util/types';
@@ -32,7 +32,7 @@ class TestFragmentParser extends FragmentParser<TestReference> {
   constructor() {
     super();
   }
-  parse(fragment: string, scope: Map<string, any>, ec?: ExecutionContextI): [string, TestReference] {
+  parse(moduleResolver: ModuleResolver, fragment: string, scope: Map<string, any>, ec?: ExecutionContextI): [string, TestReference] {
     const result = /^(HelloWorld)\s*([^]*)$/.exec(fragment);
     const ref: TestReference = {value: undefined};
     if(result) {
@@ -57,18 +57,20 @@ const endConditionTests = [/^<<[^]*$/, /^HH[^]*$/];
 
 const unreachableCode = false;
 
+const moduleResolver = new ModuleResolver();
+
 describe('re-common tests', () => {
   describe('core/recursive-grouping/parser/recursive-grouping-parser.test', () => {
     it('should not parse empty string to a reference', () => {
       const recursiveParser = new TestRecursiveGrouping();
-      let [remaining, grouping] = recursiveParser.parse('', scope, operators, TestOperatorType.A, endConditionTests);
+      let [remaining, grouping] = recursiveParser.parseAndResolve('', scope, operators, TestOperatorType.A, endConditionTests);
       remaining.should.exist;
       remaining.length.should.equal(0);
       expect(grouping).to.be.undefined;
     });
     it('should not parse empty but not 0 length string " "', () => {
       const recursiveParser = new TestRecursiveGrouping();
-      let [remaining, grouping] = recursiveParser.parse(' ', scope, operators, TestOperatorType.A, endConditionTests, TestOperatorType.A);
+      let [remaining, grouping] = recursiveParser.parseAndResolve(' ', scope, operators, TestOperatorType.A, endConditionTests, TestOperatorType.A);
       remaining.should.exist;
       remaining.length.should.equal(0);
       expect(grouping).to.be.undefined;
@@ -76,7 +78,7 @@ describe('re-common tests', () => {
 
     it('should parse exactly one Fragment "HelloWorld"', () => {
       const recursiveParser = new TestRecursiveGrouping();
-      let [remaining, grouping] = recursiveParser.parse('HelloWorld', scope, operators, TestOperatorType.A, endConditionTests);
+      let [remaining, grouping] = recursiveParser.parseAndResolve('HelloWorld', scope, operators, TestOperatorType.A, endConditionTests);
       remaining.should.exist;
       remaining.length.should.equal(0);
       grouping.should.exist;
@@ -91,7 +93,7 @@ describe('re-common tests', () => {
     });
     it('should parse Fragment followed by extra text delineated by an end condition "HelloWorld << 12345"', () => {
       const recursiveParser = new TestRecursiveGrouping();
-      let [remaining, grouping] = recursiveParser.parse('HelloWorld << 12345', scope, operators, TestOperatorType.A, endConditionTests, TestOperatorType.A);
+      let [remaining, grouping] = recursiveParser.parseAndResolve('HelloWorld << 12345', scope, operators, TestOperatorType.A, endConditionTests, TestOperatorType.A);
       remaining.should.exist;
       remaining.should.equal('<< 12345');
       grouping.should.exist;
@@ -106,7 +108,7 @@ describe('re-common tests', () => {
     });
     it('should parse Fragment followed by extra text delineated by another end condition "HelloWorld HH 12345"', () => {
       const recursiveParser = new TestRecursiveGrouping();
-      let [remaining, grouping] = recursiveParser.parse('HelloWorld HH 12345', scope, operators, TestOperatorType.A, endConditionTests, TestOperatorType.A);
+      let [remaining, grouping] = recursiveParser.parseAndResolve('HelloWorld HH 12345', scope, operators, TestOperatorType.A, endConditionTests, TestOperatorType.A);
       remaining.should.exist;
       remaining.should.equal('HH 12345');
       grouping.should.exist;
@@ -122,7 +124,7 @@ describe('re-common tests', () => {
     it('should fail on parse bad format (no end condition) "HelloWorld 12345"', () => {
       const recursiveParser = new TestRecursiveGrouping();
       try {
-        let [remaining, grouping] = recursiveParser.parse('HelloWorld 12345', scope, operators, TestOperatorType.A, endConditionTests);
+        let [remaining, grouping] = recursiveParser.parseAndResolve('HelloWorld 12345', scope, operators, TestOperatorType.A, endConditionTests);
         unreachableCode.should.be.true;
       } catch (err) {
         err.should.exist;
@@ -130,7 +132,7 @@ describe('re-common tests', () => {
     });
     it('should parse exactly one sub group with one fragment "(HelloWorld)"', () => {
       const recursiveParser = new TestRecursiveGrouping();
-      let [remaining, grouping] = recursiveParser.parse('(HelloWorld)', scope, operators, TestOperatorType.A, endConditionTests);
+      let [remaining, grouping] = recursiveParser.parseAndResolve('(HelloWorld)', scope, operators, TestOperatorType.A, endConditionTests);
       remaining.should.exist;
       remaining.should.equal('');
       grouping.should.exist;
@@ -155,7 +157,7 @@ describe('re-common tests', () => {
     });
     it('should parse exactly one Sub group with one fragment and an end condition "(HelloWorld)" << 12345', () => {
       const recursiveParser = new TestRecursiveGrouping();
-      let [remaining, grouping] = recursiveParser.parse('(HelloWorld) << 12345', scope, operators, TestOperatorType.A, endConditionTests);
+      let [remaining, grouping] = recursiveParser.parseAndResolve('(HelloWorld) << 12345', scope, operators, TestOperatorType.A, endConditionTests);
       remaining.should.exist;
       remaining.should.equal('<< 12345');
       grouping.should.exist;
@@ -179,7 +181,7 @@ describe('re-common tests', () => {
     });
     it('should parse exactly one subgroup & fragment with a leading subgroup operator "b (HelloWorld)" << 12345', () => {
       const recursiveParser = new TestRecursiveGrouping();
-      let [remaining, grouping] = recursiveParser.parse('b (HelloWorld) << 12345', scope, operators, TestOperatorType.A, endConditionTests);
+      let [remaining, grouping] = recursiveParser.parseAndResolve('b (HelloWorld) << 12345', scope, operators, TestOperatorType.A, endConditionTests);
       remaining.should.exist;
       remaining.should.equal('<< 12345');
       grouping.should.exist;
@@ -205,7 +207,7 @@ describe('re-common tests', () => {
     });
     it('should parse exactly one subgroup & fragment with a leading subgroup operator, fragment operator "b (c HelloWorld)" << 12345', () => {
       const recursiveParser = new TestRecursiveGrouping();
-      let [remaining, grouping] = recursiveParser.parse('b (c HelloWorld) << 12345', scope, operators, TestOperatorType.A, endConditionTests);
+      let [remaining, grouping] = recursiveParser.parseAndResolve('b (c HelloWorld) << 12345', scope, operators, TestOperatorType.A, endConditionTests);
       remaining.should.exist;
       remaining.should.equal('<< 12345');
       grouping.should.exist;
@@ -231,7 +233,7 @@ describe('re-common tests', () => {
     });
     it('should parse exactly one subgroup with one fragment along with 2nd fragment at top level with a leading subgroup operator, fragment operator "b (c HelloWorld) d HelloWorld" << 12345', () => {
       const recursiveParser = new TestRecursiveGrouping();
-      let [remaining, grouping] = recursiveParser.parse('b (c HelloWorld) d HelloWorld << 12345', scope, operators, TestOperatorType.A, endConditionTests);
+      let [remaining, grouping] = recursiveParser.parseAndResolve('b (c HelloWorld) d HelloWorld << 12345', scope, operators, TestOperatorType.A, endConditionTests);
       remaining.should.exist;
       remaining.should.equal('<< 12345');
       grouping.should.exist;
@@ -264,7 +266,7 @@ describe('re-common tests', () => {
     });
     it('should parse complex "b (c HelloWorld b HelloWorld a (d HelloWorld) d HelloWorld) d HelloWorld b (HelloWorld) << 12345"', () => {
       const recursiveParser = new TestRecursiveGrouping();
-      let [remaining, grouping] = recursiveParser.parse('b (c HelloWorld b HelloWorld a (d HelloWorld) d HelloWorld) d HelloWorld b (HelloWorld) << 12345', scope, operators, TestOperatorType.A, endConditionTests);
+      let [remaining, grouping] = recursiveParser.parseAndResolve('b (c HelloWorld b HelloWorld a (d HelloWorld) d HelloWorld) d HelloWorld b (HelloWorld) << 12345', scope, operators, TestOperatorType.A, endConditionTests);
       remaining.should.exist;
       remaining.should.equal('<< 12345');
       grouping.should.exist;
