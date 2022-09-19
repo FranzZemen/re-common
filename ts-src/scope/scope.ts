@@ -1,8 +1,17 @@
-import {ExecutionContextI, LoggerAdapter} from '@franzzemen/app-utility';
-import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
+import {
+  ExecutionContextI, LoadPackageType,
+  LoggerAdapter,
+  ModuleResolutionResult,
+  ModuleResolutionSetter, ModuleResolver
+} from '@franzzemen/app-utility';
+import {EnhancedError, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {isPromise} from 'node:util/types';
 import {v4} from 'uuid';
-import {RuleElementInstanceReference, RuleElementModuleReference} from '../rule-element-ref/rule-element-reference.js';
+import {
+  isRuleElementInstanceReference, isRuleElementModuleReference,
+  RuleElementInstanceReference,
+  RuleElementModuleReference
+} from '../rule-element-ref/rule-element-reference.js';
 import {HasRefName} from '../util/has-ref-name.js';
 import {Options} from './options.js';
 import {ScopedFactory} from './scoped-factory.js';
@@ -81,6 +90,43 @@ export class Scope extends Map<string, any> {
     } else {
       return instancesOrPromisesOfInstances as C[];
     }
+  }
+
+  resolveAddInstance: ModuleResolutionSetter = (refName: string, instance: any, def: ModuleResolutionResult, factory: string, override: boolean, overrideDown: boolean, ec) => {
+    const addResult = this.addScopedFactoryItems([{refName, instance}], factory, override, overrideDown, ec);
+    if(addResult && !isPromise(addResult)) {
+      return true;
+    } else {
+      logErrorAndThrow(new EnhancedError('Unexpected'), new LoggerAdapter(ec, 're-common', 'scope', 'resolveAddInstance'), ec);
+    }
+  }
+
+  addInstanceResolver<C>(moduleResolver: ModuleResolver,
+                       factoryItems: (RuleElementInstanceReference<C> | RuleElementModuleReference)[],
+                       factoryKey: string,
+                       override = false,
+                       overrideDown = false,
+                       ec?: ExecutionContextI) {
+
+    const instanceRefs: RuleElementInstanceReference<C>[] = factoryItems.filter(factoryItem => isRuleElementInstanceReference(factoryItem)) as RuleElementInstanceReference<C>[];
+    const moduleRefs: RuleElementModuleReference[] = factoryItems.filter(factoryItem => isRuleElementModuleReference(factoryItem)) as RuleElementModuleReference[];
+    const instanceResult = this.addScopedFactoryItems<C>(instanceRefs, factoryKey, override, overrideDown, ec);
+    if (isPromise(instanceResult)) {
+      logErrorAndThrow(new EnhancedError('Should not be a promise'), new LoggerAdapter(ec, 're-common', 'scope', 'addInstanceResolver'));
+    }
+    moduleRefs.forEach(moduleRef => {
+      if(!moduleResolver.hasResolution(moduleRef.refName)) {
+        moduleResolver.add({
+          refName: moduleRef.refName,
+          module: moduleRef.module,
+          ownerIsObject: true,
+          ownerThis: this,
+          ownerSetter: 'resolveAddInstance',
+          loadPackageType: LoadPackageType.package,
+          paramsArray: [factoryKey, override, overrideDown, ec],
+        }, ec);
+      }
+    })
   }
 
   addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false,  ec?: ExecutionContextI): C[] | Promise<C[]> {
