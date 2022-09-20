@@ -5,6 +5,7 @@ import {
   ModuleResolutionSetter, ModuleResolver
 } from '@franzzemen/app-utility';
 import {EnhancedError, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
+import {ModuleResolutionSetterInvocation} from '@franzzemen/app-utility/module-resolver.js';
 import {isPromise} from 'node:util/types';
 import {v4} from 'uuid';
 import {
@@ -92,7 +93,7 @@ export class Scope extends Map<string, any> {
     }
   }
 
-  resolveAddInstance: ModuleResolutionSetter = (refName: string, instance: any, def: ModuleResolutionResult, factory: string, override: boolean, overrideDown: boolean, ec) => {
+  resolveAddInstance: ModuleResolutionSetterInvocation = (refName: string, instance: any, def: ModuleResolutionResult, factory: string, override: boolean, overrideDown: boolean, ec) => {
     const addResult = this.addScopedFactoryItems([{refName, instance}], factory, override, overrideDown, ec);
     if(addResult && !isPromise(addResult)) {
       return true;
@@ -115,15 +116,19 @@ export class Scope extends Map<string, any> {
       logErrorAndThrow(new EnhancedError('Should not be a promise'), new LoggerAdapter(ec, 're-common', 'scope', 'addInstanceResolver'));
     }
     moduleRefs.forEach(moduleRef => {
-      if(!moduleResolver.hasResolution(moduleRef.refName)) {
+      if(!moduleResolver.hasPendingResolution(moduleRef.refName)) {
         moduleResolver.add({
           refName: moduleRef.refName,
-          module: moduleRef.module,
-          ownerIsObject: true,
-          ownerThis: this,
-          ownerSetter: 'resolveAddInstance',
-          loadPackageType: LoadPackageType.package,
-          paramsArray: [factoryKey, override, overrideDown, ec],
+          loader: {
+            module: moduleRef.module,
+            loadPackageType: LoadPackageType.package
+          },
+          setter: {
+            ownerIsObject: true,
+            objectRef: this,
+            setterFunction: 'resolveAddInstance',
+            paramsArray: [factoryKey, override, overrideDown, ec]
+          }
         }, ec);
       }
     })

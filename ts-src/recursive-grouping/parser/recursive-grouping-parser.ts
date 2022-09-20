@@ -43,7 +43,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
         // Create a promise on references
         const groupingPromise: Promise<RecursiveGrouping<OperatorType, Reference>> = resolveResultsOrPromise
           .then(resolveResults => {
-            const hasErrors = resolveResults.some(resolveResult => resolveResult.error);
+            const hasErrors = ModuleResolver.resolutionsHaveErrors(resolveResults);
             if(hasErrors) {
               log.warn(resolveResults, 'Errors Resolving');
               logErrorAndThrow(new EnhancedError('Errors Resolving'), log, ec);
@@ -56,7 +56,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
           });
         return [remaining, groupingPromise, endCondition];
       } else {
-        const hasErrors = resolveResultsOrPromise.some(resolveResult => resolveResult.error);
+        const hasErrors = ModuleResolver.resolutionsHaveErrors(resolveResultsOrPromise);
         if(hasErrors) {
           log.warn(resolveResultsOrPromise, 'Errors Resolving');
           logErrorAndThrow(new EnhancedError('Errors Resolving'), log, ec);
