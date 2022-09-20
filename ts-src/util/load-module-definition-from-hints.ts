@@ -52,7 +52,7 @@ export function loadModuleDefinitionFromHints(
   moduleFunctionNameKey = HintKey.FunctionName,
   moduleConstructorNameKey = HintKey.ConstructorName,
   moduleResolutionKey = HintKey.ModuleResolutionName,
-  loadSchemaKey = HintKey.LoadSchemaName): ModuleDefinition {
+  loadSchemaKey = HintKey.LoadSchema): ModuleDefinition {
 
   const log = new LoggerAdapter(ec, 'rules-engine', 'load-module-definition-from-hints', 'loadModuleDefinitionFromHints');
   let module = hints.get(moduleKey) as ModuleDefinition;
