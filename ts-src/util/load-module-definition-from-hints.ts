@@ -55,22 +55,11 @@ export function loadModuleDefinitionFromHints(
   loadSchemaKey = HintKey.LoadSchemaName): ModuleDefinition {
 
   const log = new LoggerAdapter(ec, 'rules-engine', 'load-module-definition-from-hints', 'loadModuleDefinitionFromHints');
-  let module: ModuleDefinition;
-  const moduleName = hints.get(moduleNameKey) as string;
-  if (moduleName) {
-    // Case a or b
-    const functionName = hints.get(moduleFunctionNameKey) as string;
-    const constructorName = hints.get(moduleConstructorNameKey) as string;
-    if (functionName && constructorName) {
-      const err = new Error(`Both function name ${functionName} and constructor name ${constructorName} provided, only one should be`);
-      logErrorAndThrow(err, log, ec);
-    }
-    const moduleResolution = hints.get(moduleResolutionKey) as ModuleResolution;
-    const loadSchema = hints.get(loadSchemaKey) as LoadSchema;
-    module = {moduleName, functionName, constructorName, moduleResolution, loadSchema};
-  } else {
+  let module = hints.get(moduleKey) as ModuleDefinition;
+  // Preferentially load the module if available
+  if (module) {
     const obj = hints.get(moduleKey);
-    if(typeof obj === 'object') {
+    if (typeof obj === 'object') {
       module = obj as ModuleDefinition;
     } else {
       const json = hints.get(moduleKey) as string;
@@ -86,6 +75,22 @@ export function loadModuleDefinitionFromHints(
           logErrorAndThrow(err, log, ec);
         }
       }
+    }
+  } else {
+    const moduleName = hints.get(moduleNameKey) as string;
+    if (moduleName) {
+      // Case a or b
+      const functionName = hints.get(moduleFunctionNameKey) as string;
+      const constructorName = hints.get(moduleConstructorNameKey) as string;
+      if (functionName && constructorName) {
+        const err = new Error(`Both function name ${functionName} and constructor name ${constructorName} provided, only one should be`);
+        logErrorAndThrow(err, log, ec);
+      }
+      const moduleResolution = hints.get(moduleResolutionKey) as ModuleResolution;
+      const loadSchema = hints.get(loadSchemaKey) as LoadSchema;
+      module = {moduleName, functionName, constructorName, moduleResolution, loadSchema};
+      // Put back in hints in order to have it there as the preferred view
+      hints.set(moduleKey, module);
     }
   }
   return module;
