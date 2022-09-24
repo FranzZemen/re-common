@@ -10,13 +10,13 @@ const should = chai.should();
 
 const unreachableCode = false;
 
-describe('re tests', () => {
-  describe('re-common tests', () => {
+describe('re-commont tests', () => {
+  describe('recursing grouping parser tests', () => {
     describe('inference-stack-parser tests', () => {
       // Test class to test aba\stract base class functionality
       class TestInferenceStackParser extends InferenceStackParser<TestParser> {
         // We're not actually testing parsing so leave as is.
-        parse(moduleResolver: ModuleResolver, remaining: string, scope: Map<string, any>, inferredContext: any, execContext: ExecutionContextI | undefined): [string, any] {
+        parse(remaining: string, scope: Map<string, any>, inferredContext: any, execContext: ExecutionContextI | undefined): [string, any] {
           return ['', undefined];
         }
 

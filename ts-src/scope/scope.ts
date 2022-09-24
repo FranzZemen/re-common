@@ -1,18 +1,16 @@
 import {
-  ExecutionContextI, LoadPackageType,
+  ExecutionContextI,
+  LoadPackageType,
   LoggerAdapter,
   ModuleResolutionResult,
-  ModuleResolutionSetter, ModuleResolver
+  ModuleResolver
 } from '@franzzemen/app-utility';
-import {EnhancedError, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
+import {EnhancedError, logErrorAndReturn, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {ModuleResolutionSetterInvocation} from '@franzzemen/app-utility/module-resolver.js';
 import {isPromise} from 'node:util/types';
 import {v4} from 'uuid';
-import {
-  isRuleElementInstanceReference, isRuleElementModuleReference,
-  RuleElementInstanceReference,
-  RuleElementModuleReference
-} from '../rule-element-ref/rule-element-reference.js';
+import {RuleElementFactory} from '../rule-element-ref/rule-element-factory.js';
+import {RuleElementInstanceReference, RuleElementReference} from '../rule-element-ref/rule-element-reference.js';
 import {HasRefName} from '../util/has-ref-name.js';
 import {Options} from './options.js';
 import {ScopedFactory} from './scoped-factory.js';
@@ -25,6 +23,7 @@ export class Scope extends Map<string, any> {
 
   public scopeName: string;
   public throwOnAsync = false;
+  private moduleResolver = new ModuleResolver();
 
   constructor(protected options?: Options, parentScope?: Scope, ec?: ExecutionContextI) {
     super();
@@ -43,6 +42,10 @@ export class Scope extends Map<string, any> {
     }
   }
 
+  getRuleElementItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContextI): C {
+    return this.getScopedFactoryItem(refName, factoryKey, searchParent, ec);
+  }
+
   getScopedFactoryItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContextI): C {
     const factory: ScopedFactory<C> = this.get(factoryKey);
     const c = factory.getRegistered(refName, ec);
@@ -57,118 +60,123 @@ export class Scope extends Map<string, any> {
     return undefined;
   }
 
-  private _addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI): C[] | Promise<C[]> {
-    const factory: ScopedFactory<C> = this.get(factoryKey);
-    const instancesOrPromisesOfInstances: (C | Promise<C>)[] = [];
-    for(let ndx = 0; ndx < items.length; ndx++) {
-      const item = items[ndx];
-      if (override) {
-        // Clear anscestors, adding the data type to the furthest ancestor
-        if (this.overrideScopedFactoryItemInScopes(item, factoryKey, ec)) {
-          // IF ancestor existed (overrideDataType = true), then clear this dataFactory
-          if (factory.hasRegistered(item.refName, ec)) {
-            factory.unregister(item.refName, ec);
+
+  /**
+   * Module Resolver setter
+   * @param refName
+   * @param instance
+   * @param result
+   * @param factory
+   * @param ec
+   */
+  addRuleElementReference: ModuleResolutionSetterInvocation = (refName: string, instance: any, result:ModuleResolutionResult, factory: RuleElementFactory<any>, ec) => {
+    if(instance === undefined || result.resolution.loader.module === undefined) {
+      const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReference');
+      log.warn({refName, instance, result, factory}, 'No instance or no module');
+      logErrorAndThrow(new EnhancedError(`No instance or no module for refName ${refName}`));
+    }
+    factory.register({instanceRef: {refName, instance}, moduleRef: {refName, module: result.resolution.loader.module}});
+    return true;
+  }
+
+
+
+
+  /**
+   * For pure instances this will not require scope.resolve(); For modules or mixed it will.
+   * @param ruleElementRefs
+   * @param factoryKey
+   * @param ec
+   */
+  addRuleElementReferenceItems<C>(ruleElementRefs: (RuleElementReference<C>)[], factoryKey: string | RuleElementFactory<any>, ec?: ExecutionContextI) {
+    const log = new LoggerAdapter(ec, 're-common', 'scope', 'addScopedFactoryItems');
+    let factory: RuleElementFactory<any>;
+    if(typeof factoryKey === 'string') {
+      factory = this.get(factoryKey) as RuleElementFactory<any>;
+    }
+    if(ruleElementRefs === undefined) {
+      logErrorAndThrow(new EnhancedError('Undefined RuleElementReference<>[]'), log, ec);
+    } else {
+      ruleElementRefs.forEach(ruleElementRef => {
+        if (ruleElementRef.instanceRef === undefined) {
+          if (ruleElementRef.moduleRef === undefined) {
+            logErrorAndThrow(new EnhancedError('Undefined instanceRef and moduleRef'), log, ec);
+          } else {
+            this.moduleResolver.add({
+              refName: ruleElementRef.moduleRef.refName,
+              loader: {
+                module: ruleElementRef.moduleRef.module,
+                loadPackageType: LoadPackageType.package
+              },
+              setter: {
+                ownerIsObject: true,
+                objectRef: this,
+                setterFunction: 'resolveAddRuleElementInstance',
+                paramsArray: [factory, ec]
+              }
+            })
           }
         } else {
-          // If no ancestor existed, then just set the data type at this scope level
-          // Ignore result, but wait for promise to settle, so order is kept.
-          let c: C | Promise<C> = factory.register(item, true, ec);
-          instancesOrPromisesOfInstances.push(c);
+          factory.register(ruleElementRef,ec);
         }
+      });
+    }
+  }
+
+  /**
+   * Resolves this scope and down, working from the lowest scope up, and iterating backward in the child array to ensure
+   * the "oldest" scope handled last.
+   * @param scope
+   * @param ec
+   */
+  static resolve(scope: Scope, ec?: ExecutionContextI): true | Promise<true> {
+    const childScopes = scope.get(Scope.ChildScopes) as Scope[];
+    if(childScopes && childScopes.length > 0) {
+      let reverse = childScopes.filter(child => true);
+      reverse.reverse();
+      let async = false;
+      const promises: (true | Promise<true>)[] = [];
+      reverse.forEach(child => {
+        const trueOrPromise = Scope.resolve(child, ec);
+        if(isPromise(trueOrPromise)) {
+          async = true;
+        }
+        promises.push(trueOrPromise);
+      })
+      if(async) {
+        return Promise.all(promises)
+          .then((truVals) => {
+            return Scope.resolveLocal(scope, ec);
+          });
       } else {
-        // If the override flag is false, then set at this level, but don't override what's in the factory
-        let c: C | Promise<C> = factory.register(item, false, ec);
-        instancesOrPromisesOfInstances.push(c);
+        return Scope.resolveLocal(scope, ec);
       }
-      if (overrideDown) {
-        // Remove all child hierarchy data types
-        this.recurseRemoveScopedFactoryChildItems<C>([item.refName], factoryKey, ec);
-      }
-    }
-    const hasAsync = instancesOrPromisesOfInstances.some(instancesOrPromisesOfInstance => isPromise(instancesOrPromisesOfInstance));
-    if(hasAsync) {
-      return Promise.all(instancesOrPromisesOfInstances) as Promise<C[]>;
     } else {
-      return instancesOrPromisesOfInstances as C[];
+      return Scope.resolveLocal(scope, ec);
     }
   }
 
-  resolveAddInstance: ModuleResolutionSetterInvocation = (refName: string, instance: any, def: ModuleResolutionResult, factory: string, override: boolean, overrideDown: boolean, ec) => {
-    const addResult = this.addScopedFactoryItems([{refName, instance}], factory, override, overrideDown, ec);
-    if(addResult && !isPromise(addResult)) {
-      return true;
-    } else {
-      logErrorAndThrow(new EnhancedError('Unexpected'), new LoggerAdapter(ec, 're-common', 'scope', 'resolveAddInstance'), ec);
-    }
-  }
-
-  addScopedFactoryItemsResolver<C>(moduleResolver: ModuleResolver,
-                                   factoryItems: (RuleElementInstanceReference<C> | RuleElementModuleReference)[],
-                                   factoryKey: string,
-                                   override = false,
-                                   overrideDown = false,
-                                   ec?: ExecutionContextI) {
-
-    const instanceRefs: RuleElementInstanceReference<C>[] = factoryItems.filter(factoryItem => isRuleElementInstanceReference(factoryItem)) as RuleElementInstanceReference<C>[];
-    const moduleRefs: RuleElementModuleReference[] = factoryItems.filter(factoryItem => isRuleElementModuleReference(factoryItem)) as RuleElementModuleReference[];
-    const instanceResult = this.addScopedFactoryItems<C>(instanceRefs, factoryKey, override, overrideDown, ec);
-    if (isPromise(instanceResult)) {
-      logErrorAndThrow(new EnhancedError('Should not be a promise'), new LoggerAdapter(ec, 're-common', 'scope', 'addInstanceResolver'));
-    }
-    moduleRefs.forEach(moduleRef => {
-      if(!moduleResolver.hasPendingResolution(moduleRef.refName)) {
-        moduleResolver.add({
-          refName: moduleRef.refName,
-          loader: {
-            module: moduleRef.module,
-            loadPackageType: LoadPackageType.package
-          },
-          setter: {
-            ownerIsObject: true,
-            objectRef: this,
-            setterFunction: 'resolveAddInstance',
-            paramsArray: [factoryKey, override, overrideDown, ec]
-          }
-        }, ec);
-      }
-    })
-  }
-
-  addScopedFactoryItems<C>(items: (RuleElementModuleReference | RuleElementInstanceReference<C>)[], factoryKey: string, override = false, overrideDown = false,  ec?: ExecutionContextI): C[] | Promise<C[]> {
-    const log = new LoggerAdapter(ec, 'rules-engine', 'scope-functions', 'add');
-    if (items?.length > 0) {
-      return this._addScopedFactoryItems(items, factoryKey, override, overrideDown, ec);
-    }
-  }
-
-  private overrideScopedFactoryItemInScopes<C>(item: (RuleElementModuleReference | RuleElementInstanceReference<C>), factoryKey: string, ec?: ExecutionContextI): boolean | Promise<boolean> {
-    // Start at the top of the stack
-    let height = this.getScopeDepth(ec);
-    let furthestAncestor: Map<string, any>;
-    while (height > 0) {
-      const ancestor = this.getParentAtHeight(height, ec);
-      const ancestorFactory: ScopedFactory<C> = ancestor.get(factoryKey);
-      if (ancestorFactory.hasRegistered(item.refName, ec)) {
-        if (!furthestAncestor) {
-          furthestAncestor = ancestor;
-        }
-        ancestorFactory.unregister(item.refName, ec);
-      }
-      height--;
-    }
-    if (furthestAncestor) {
-      const ancestorFactory: ScopedFactory<C> = furthestAncestor.get(factoryKey);
-      const valueOrPromise = ancestorFactory.register(item, true, ec);
-      if(isPromise(valueOrPromise)) {
-        return valueOrPromise
-          .then(value => {
-            return true;
+  private static resolveLocal(scope: Scope, ec?: ExecutionContextI) : true | Promise<true> {
+    if (scope.moduleResolver.hasPendingResolutions()) {
+      const resultsOrPromises = scope.moduleResolver.resolve(ec);
+      if (isPromise(resultsOrPromises)) {
+        return resultsOrPromises
+          .then(resolutions => {
+            const someErrors = ModuleResolver.resolutionsHaveErrors(resolutions);
+            if (someErrors) {
+              const log = new LoggerAdapter(ec, 're-common', 'scope', 'resolveLocal');
+              log.warn({scope}, 'Errors resolving modules');
+              throw logErrorAndReturn(new EnhancedError('Errors resolving modules'));
+            } else {
+              scope.moduleResolver.clear();
+              return true;
+            }
           });
       } else {
         return true;
       }
     } else {
-      return false;
+      return true;
     }
   }
 

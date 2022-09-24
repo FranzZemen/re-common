@@ -30,6 +30,7 @@ export class RuleElementReference<C> {
   instanceRef?: RuleElementInstanceReference<C>;
 }
 
+
 export function isRuleElementModuleReference (reference: any | RuleElementModuleReference): reference is RuleElementModuleReference {
   // Ref must be an object
   if(reference !== undefined && typeof reference === 'object') {

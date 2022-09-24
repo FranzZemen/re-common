@@ -41,13 +41,12 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
 
   /**
    * Parse method implementations need to provide.
-   * @param moduleResolver
    * @param remaining
    * @param scope
    * @param inferredContext
    * @param ec
    */
-  abstract parse(moduleResolver: ModuleResolver, remaining: string, scope: Map<string, any>, inferredContext?: any, ec?: ExecutionContextI): [string, any | Promise<any>];
+  abstract parse(remaining: string, scope: Map<string, any>, inferredContext?: any, ec?: ExecutionContextI): [string, any | Promise<any>];
 
   resolveAddParser: ModuleResolutionSetterInvocation = (refName: string, parser: InferenceParser, resolutionResult?: ModuleResolutionResult, ec?: ExecutionContextI) => {
     const inferenceParser = this.parserMap.get(refName)?.instanceRef?.instance;

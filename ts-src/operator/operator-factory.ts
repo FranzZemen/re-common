@@ -19,9 +19,10 @@ export class OperatorFactory extends RuleElementFactory<OperatorI> {
   constructor(populateStandard = true) {
     super();
     if(populateStandard) {
-      this.register({
-        refName: StandardOperator.Plus,
-        instance: new StandardPlusOperator()
+      this.register({instanceRef: {
+          refName: StandardOperator.Plus,
+          instance: new StandardPlusOperator()
+        }
       });
     }
   }

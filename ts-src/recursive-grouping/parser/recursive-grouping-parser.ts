@@ -1,6 +1,7 @@
 import {ExecutionContextI, LoggerAdapter, ModuleResolver} from '@franzzemen/app-utility';
-import {EnhancedError, logErrorAndReturn, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
+import {EnhancedError, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {isPromise} from 'node:util/types';
+import {Scope} from '../../scope/scope.js';
 import {Fragment, RecursiveGrouping} from '../recursive-grouping.js';
 import {FragmentParser} from './fragment-parser.js';
 
@@ -26,46 +27,27 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
 
 
   parseAndResolve (text: string,
-                   scope: Map<string, any>,
+                   scope: Scope,
                    operators: OperatorType[],
                    defaultOperator: OperatorType,
                    endConditionTests: RegExp[],
                    groupOperator?: OperatorType,
                    ec?: ExecutionContextI): ResolvedRecursiveGroupingParseResult<OperatorType, Reference> {
 
+
     const log = new LoggerAdapter(ec, 're-common', 'recursive-grouping-parser', 'parseAndResolve');
-    const moduleResolver = new ModuleResolver();
-    const result: RecursiveGroupingParseResult<OperatorType, Reference> = this.parse(moduleResolver, text, scope, operators,defaultOperator, endConditionTests, groupOperator, ec);
+    const result: RecursiveGroupingParseResult<OperatorType, Reference> = this.parse(text, scope, operators, defaultOperator, endConditionTests, groupOperator, ec);
     const [remaining, grouping, endCondition] = result;
-    if(moduleResolver.hasPendingResolutions()) {
-      const resolveResultsOrPromise = moduleResolver.resolve();
-      if(isPromise(resolveResultsOrPromise)) {
-        // Create a promise on references
-        const groupingPromise: Promise<RecursiveGrouping<OperatorType, Reference>> = resolveResultsOrPromise
-          .then(resolveResults => {
-            const hasErrors = ModuleResolver.resolutionsHaveErrors(resolveResults);
-            if(hasErrors) {
-              log.warn(resolveResults, 'Errors Resolving');
-              logErrorAndThrow(new EnhancedError('Errors Resolving'), log, ec);
-            }
-            moduleResolver.clear();
-            return grouping;
-          }, err => {
-            moduleResolver.clear();
-            throw logErrorAndReturn(err, log, ec);
-          });
-        return [remaining, groupingPromise, endCondition];
-      } else {
-        const hasErrors = ModuleResolver.resolutionsHaveErrors(resolveResultsOrPromise);
-        if(hasErrors) {
-          log.warn(resolveResultsOrPromise, 'Errors Resolving');
-          logErrorAndThrow(new EnhancedError('Errors Resolving'), log, ec);
-        }
-        moduleResolver.clear();
-        return result;
-      }
-    } else {
-      return result;
+    const trueValOrPromise = Scope.resolve(scope, ec);
+
+    if (isPromise(trueValOrPromise)) {
+      const groupingPromise = trueValOrPromise
+        .then(truVal => {
+          return grouping;
+        })
+      return [remaining, groupingPromise, endCondition];
+    }  else {
+      return [remaining, grouping, endCondition];
     }
   }
 
@@ -86,8 +68,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
    * @param ec
    * @return If the RecursiveGrouping is undefined, an end condition was immediately encountered and processing should proceed with that info
    */
-  parse(moduleResolver: ModuleResolver,
-        text: string,
+  parse(text: string,
         scope: Map<string, any>,
         operators: OperatorType[],
         defaultOperator: OperatorType,
@@ -122,7 +103,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
       if (subGroupResult) {
         remaining = subGroupResult[1].trim();
         let subGroup: RecursiveGrouping<OperatorType, Reference>;
-        [remaining, subGroup, endCondition] = this.parse(moduleResolver, remaining, scope, operators, defaultOperator, endConditionTests, subGroupOperator, ec);
+        [remaining, subGroup, endCondition] = this.parse(remaining, scope, operators, defaultOperator, endConditionTests, subGroupOperator, ec);
 
         if (subGroup) {
           thisGroup.group.push(subGroup);
@@ -136,7 +117,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
         }
       } else {
         let reference: Reference;
-        [remaining, reference] = this.fragmentParser.parse(moduleResolver, remaining, scope, ec);
+        [remaining, reference] = this.fragmentParser.parse(remaining, scope, ec);
         if (reference) {
           const fragment: Fragment<OperatorType, Reference> = {operator: subGroupOperator, reference};
           thisGroup.group.push(fragment);

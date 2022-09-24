@@ -8,8 +8,4 @@ export class HintKey {
   static ConstructorName = 'constructor-name';
   static ModuleResolutionName = 'module-resolution';
   static LoadSchema = 'load-schema';
-  // This is a unary hint.  Presence means true
-  static Override = 'override'
-  // This is a unary hint.  Presence means true
-  static OverrideDown = 'override-down'
 }
