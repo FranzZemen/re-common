@@ -1,5 +1,5 @@
 import {
-  ExecutionContextI,
+  ExecutionContextI, Hints,
   LoadPackageType,
   LoggerAdapter, ModuleResolutionAction,
   ModuleResolutionResult,
@@ -40,6 +40,10 @@ export class Scope extends Map<string, any> {
     if(options?.throwOnAsync !== undefined) {
       this.throwOnAsync = options.throwOnAsync;
     }
+  }
+
+  parseHints(near: string, prefix: string, ec?: ExecutionContextI) : [string, Hints] {
+    return Hints.parseHints(this.moduleResolver, near, prefix, ec);
   }
 
   getRuleElementItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContextI): C {
