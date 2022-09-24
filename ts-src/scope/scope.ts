@@ -1,7 +1,7 @@
 import {
   ExecutionContextI,
   LoadPackageType,
-  LoggerAdapter,
+  LoggerAdapter, ModuleResolutionAction,
   ModuleResolutionResult,
   ModuleResolver
 } from '@franzzemen/app-utility';
@@ -80,9 +80,7 @@ export class Scope extends Map<string, any> {
   }
 
 
-
-
-  addRuleElementReferenceItem<C>(ruleElementRef: RuleElementReference<C>, factoryKey: string | RuleElementFactory<any>, ec?: ExecutionContextI) {
+  addRuleElementReferenceItem<C>(ruleElementRef: RuleElementReference<C>, factoryKey: string | RuleElementFactory<any>, action?: ModuleResolutionAction, ec?: ExecutionContextI): C {
     const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReferenceItem');
     let factory: RuleElementFactory<any>;
     if(typeof factoryKey === 'string') {
@@ -105,20 +103,23 @@ export class Scope extends Map<string, any> {
             objectRef: this,
             setterFunction: 'addRuleElementReferenceSetter',
             paramsArray: [factory, ec]
-          }
-        })
+          },
+          action
+        });
+        return undefined;
       }
     } else {
-      factory.register(ruleElementRef,ec);
+      return factory.register(ruleElementRef,ec);
     }
   }
   /**
    * For pure instances this will not require scope.resolve(); For modules or mixed it will.
    * @param ruleElementRefs
    * @param factoryKey
+   * @param actions
    * @param ec
    */
-  addRuleElementReferenceItems<C>(ruleElementRefs: RuleElementReference<C>[], factoryKey: string | RuleElementFactory<any>, ec?: ExecutionContextI) {
+  addRuleElementReferenceItems<C>(ruleElementRefs: RuleElementReference<C>[], factoryKey: string | RuleElementFactory<any>, actions?: ModuleResolutionAction[], ec?: ExecutionContextI): C[] {
     const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReferenceItems');
     let factory: RuleElementFactory<any>;
     if(typeof factoryKey === 'string') {
@@ -129,9 +130,11 @@ export class Scope extends Map<string, any> {
     if(ruleElementRefs === undefined) {
       logErrorAndThrow(new EnhancedError('Undefined RuleElementReference<>[]'), log, ec);
     } else {
-      ruleElementRefs.forEach(ruleElementRef => {
-        this.addRuleElementReferenceItem(ruleElementRef, factory, ec);
+      const instances: C[] = [];
+      ruleElementRefs.forEach((ruleElementRef, ndx) => {
+        instances.push(this.addRuleElementReferenceItem(ruleElementRef, factory, actions ? actions[ndx] : undefined, ec))
       });
+      return instances;
     }
   }
 

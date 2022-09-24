@@ -1,4 +1,9 @@
-import {CheckFunction, ModuleResolution} from '@franzzemen/app-utility';
+import {
+  CheckFunction,
+  ModuleResolution,
+  ModuleResolutionAction,
+  ModuleResolutionActionInvocation
+} from '@franzzemen/app-utility';
 import chai from 'chai';
 import 'mocha';
 import Validator from 'fastest-validator';
@@ -9,7 +14,7 @@ import {
   RuleElementModuleReference, RuleElementReference,
   Scope
 } from '../../publish/index.js';
-import {RuleElementImpl, RulesObjectImplFactory} from '../rule-element-ref/rule-element-impl.js';
+import {RuleElementImpl, RulesObjectImplFactory, RulesObjectImplI} from '../rule-element-ref/rule-element-impl.js';
 
 const expect = chai.expect;
 const should = chai.should();
@@ -164,7 +169,30 @@ describe('re-common tests', () => {
           refName: 'Type3',
           instance: new RuleElementImpl('Third')
         }
-        scope.addRuleElementReferenceItems([{moduleRef: module1}, {moduleRef: module2}, {instanceRef: item3}], factoryName);
+
+        class AClass {
+          refName: 'Type2';
+          mine: RulesObjectImplI;
+          setMine: ModuleResolutionActionInvocation = (successfulResolution: boolean, factoryName: string, ec) => {
+            const factory = scope.get(factoryName) as RulesObjectImplFactory;
+            this.mine = factory.getRegistered(this.refName, ec);
+            return true;
+          }
+        }
+        const a = new AClass();
+
+        const action: ModuleResolutionAction = {
+          ownerIsObject: true,
+          objectRef: a,
+          actionFunction: 'setMine',
+          paramsArray: [factoryName, undefined]
+        }
+
+        scope.addRuleElementReferenceItems([
+          {moduleRef: module1}, {moduleRef: module2}, {instanceRef: item3}], factoryName, [
+            undefined, action, undefined]);
+
+
         let trueValOrPromise: true | Promise<true>;
         try {
            trueValOrPromise = Scope.resolve(scope);
@@ -187,6 +215,7 @@ describe('re-common tests', () => {
             factory.hasRegistered('Type1').should.be.true;
             factory.hasRegistered('Type2').should.be.true;
             factory.hasRegistered('Type3').should.be.true;
+            expect(a.mine).to.exist;
           }, err => {
             console.error (err);
             unreachableCode.should.be.true;
