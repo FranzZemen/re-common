@@ -69,7 +69,7 @@ export class Scope extends Map<string, any> {
    * @param factory
    * @param ec
    */
-  addRuleElementReference: ModuleResolutionSetterInvocation = (refName: string, instance: any, result:ModuleResolutionResult, factory: RuleElementFactory<any>, ec) => {
+  addRuleElementReferenceSetter: ModuleResolutionSetterInvocation = (refName: string, instance: any, result:ModuleResolutionResult, factory: RuleElementFactory<any>, ec) => {
     if(instance === undefined || result.resolution.loader.module === undefined) {
       const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReference');
       log.warn({refName, instance, result, factory}, 'No instance or no module');
@@ -82,43 +82,55 @@ export class Scope extends Map<string, any> {
 
 
 
+  addRuleElementReferenceItem<C>(ruleElementRef: RuleElementReference<C>, factoryKey: string | RuleElementFactory<any>, ec?: ExecutionContextI) {
+    const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReferenceItem');
+    let factory: RuleElementFactory<any>;
+    if(typeof factoryKey === 'string') {
+      factory = this.get(factoryKey) as RuleElementFactory<any>;
+    } else {
+      factory = factoryKey;
+    }
+    if (ruleElementRef.instanceRef === undefined) {
+      if (ruleElementRef.moduleRef === undefined) {
+        logErrorAndThrow(new EnhancedError('Undefined instanceRef and moduleRef'), log, ec);
+      } else {
+        this.moduleResolver.add({
+          refName: ruleElementRef.moduleRef.refName,
+          loader: {
+            module: ruleElementRef.moduleRef.module,
+            loadPackageType: LoadPackageType.package
+          },
+          setter: {
+            ownerIsObject: true,
+            objectRef: this,
+            setterFunction: 'addRuleElementReferenceSetter',
+            paramsArray: [factory, ec]
+          }
+        })
+      }
+    } else {
+      factory.register(ruleElementRef,ec);
+    }
+  }
   /**
    * For pure instances this will not require scope.resolve(); For modules or mixed it will.
    * @param ruleElementRefs
    * @param factoryKey
    * @param ec
    */
-  addRuleElementReferenceItems<C>(ruleElementRefs: (RuleElementReference<C>)[], factoryKey: string | RuleElementFactory<any>, ec?: ExecutionContextI) {
-    const log = new LoggerAdapter(ec, 're-common', 'scope', 'addScopedFactoryItems');
+  addRuleElementReferenceItems<C>(ruleElementRefs: RuleElementReference<C>[], factoryKey: string | RuleElementFactory<any>, ec?: ExecutionContextI) {
+    const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReferenceItems');
     let factory: RuleElementFactory<any>;
     if(typeof factoryKey === 'string') {
       factory = this.get(factoryKey) as RuleElementFactory<any>;
+    } else {
+      factory = factoryKey;
     }
     if(ruleElementRefs === undefined) {
       logErrorAndThrow(new EnhancedError('Undefined RuleElementReference<>[]'), log, ec);
     } else {
       ruleElementRefs.forEach(ruleElementRef => {
-        if (ruleElementRef.instanceRef === undefined) {
-          if (ruleElementRef.moduleRef === undefined) {
-            logErrorAndThrow(new EnhancedError('Undefined instanceRef and moduleRef'), log, ec);
-          } else {
-            this.moduleResolver.add({
-              refName: ruleElementRef.moduleRef.refName,
-              loader: {
-                module: ruleElementRef.moduleRef.module,
-                loadPackageType: LoadPackageType.package
-              },
-              setter: {
-                ownerIsObject: true,
-                objectRef: this,
-                setterFunction: 'resolveAddRuleElementInstance',
-                paramsArray: [factory, ec]
-              }
-            })
-          }
-        } else {
-          factory.register(ruleElementRef,ec);
-        }
+        this.addRuleElementReferenceItem(ruleElementRef, factory, ec);
       });
     }
   }
