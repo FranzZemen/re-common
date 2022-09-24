@@ -24,6 +24,7 @@ export class Scope extends Map<string, any> {
   public scopeName: string;
   public throwOnAsync = false;
   private moduleResolver = new ModuleResolver();
+  private unsatisfiedRuleElementReferences: [refName: string, factoryName: string][] = [];
 
   constructor(protected options?: Options, parentScope?: Scope, ec?: ExecutionContextI) {
     super();
@@ -39,6 +40,13 @@ export class Scope extends Map<string, any> {
     }
     if(options?.throwOnAsync !== undefined) {
       this.throwOnAsync = options.throwOnAsync;
+    }
+  }
+
+  addUnsatisfiedRuleElementReference(refName: string, factoryName: string, ec?: ExecutionContextI) {
+    const hasUnsatisfiedReference = this.unsatisfiedRuleElementReferences.some(unsatisfiedRuleElementReference => unsatisfiedRuleElementReference[0] === refName && unsatisfiedRuleElementReference[1] === factoryName);
+    if(!hasUnsatisfiedReference) {
+      this.unsatisfiedRuleElementReferences.push([refName, factoryName]);
     }
   }
 
@@ -175,7 +183,33 @@ export class Scope extends Map<string, any> {
     }
   }
 
+  private static clearResolutions(scope) {
+    scope.moduleResolver.clear();
+    scope.unsatisfiedRuleElementReferences = [];
+  }
+
+  private static satisfyUnsatisfiedRuleElementReferences(scope: Scope, ec?: ExecutionContextI): true {
+    if(scope.unsatisfiedRuleElementReferences.length > 0) {
+      for(let i = scope.unsatisfiedRuleElementReferences.length - 1; i >= 0; i--) {
+        let [refName, factoryName] = scope.unsatisfiedRuleElementReferences[i];
+        if(scope.hasScopedFactoryItem<any>(refName, factoryName, ec)) {
+          scope.unsatisfiedRuleElementReferences.splice(i,1);
+        }
+      }
+      if(scope.unsatisfiedRuleElementReferences.length > 0) {
+        const log = new LoggerAdapter(ec, 're-common', 'scope', 'satisfyUnsatisfiedRuleElementReferences');
+        log.warn(scope, `No module found for at least one refName/factoryName`);
+        logErrorAndThrow(new EnhancedError(`No module found for at least one refName/factoryName`), log, ec);
+      } else {
+        return true;
+      }
+    } else {
+      return true;
+    }
+  }
+
   private static resolveLocal(scope: Scope, ec?: ExecutionContextI) : true | Promise<true> {
+
     if (scope.moduleResolver.hasPendingResolutions()) {
       const resultsOrPromises = scope.moduleResolver.resolve(ec);
       if (isPromise(resultsOrPromises)) {
@@ -185,13 +219,17 @@ export class Scope extends Map<string, any> {
             if (someErrors) {
               const log = new LoggerAdapter(ec, 're-common', 'scope', 'resolveLocal');
               log.warn({scope}, 'Errors resolving modules');
+              Scope.clearResolutions(scope);
               throw logErrorAndReturn(new EnhancedError('Errors resolving modules'));
             } else {
-              scope.moduleResolver.clear();
+              Scope.satisfyUnsatisfiedRuleElementReferences(scope, ec);
+              Scope.clearResolutions(scope);
               return true;
             }
           });
       } else {
+        Scope.satisfyUnsatisfiedRuleElementReferences(scope, ec);
+        Scope.clearResolutions(scope);
         return true;
       }
     } else {
