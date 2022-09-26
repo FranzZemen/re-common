@@ -176,6 +176,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
    */
   parseOperator(text, operators: OperatorType[], addDefault: boolean, defaultOperator: OperatorType, ec?: ExecutionContextI): [string, OperatorType] {
     const log = new LoggerAdapter(ec, 'rules-engine', 'recursive-grouping-parser', RecursiveGroupingParser.name + 'parseOperator');
+
     // Operators are bounded by whitespace (but text will be trimmed at least on the start side...however
     // the end of the operator must have whitespace before any further text
     for (let i = 0; i < operators.length; i++) {
