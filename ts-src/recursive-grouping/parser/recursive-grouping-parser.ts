@@ -1,4 +1,4 @@
-import {ExecutionContextI, LoggerAdapter, ModuleResolver} from '@franzzemen/app-utility';
+import {escapeRegex, ExecutionContextI, LoggerAdapter, ModuleResolver} from '@franzzemen/app-utility';
 import {EnhancedError, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {isPromise} from 'node:util/types';
 import {Scope} from '../../scope/scope.js';
@@ -174,21 +174,26 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
    * @return the remaining text after removing the operator and trailing white space as well as the operator OR
    * the original text and undefined if it does nto find an operator
    */
-  parseOperator(text, operators: OperatorType[], addDefault: boolean, defaultOperator: OperatorType, ec?: ExecutionContextI): [string, OperatorType] {
+  parseOperator(text, _operators: OperatorType[], addDefault: boolean, _defaultOperator: OperatorType, ec?: ExecutionContextI): [string, OperatorType] {
     const log = new LoggerAdapter(ec, 'rules-engine', 'recursive-grouping-parser', RecursiveGroupingParser.name + 'parseOperator');
+
+    const operators: string[]= [];
+    for(let operator of _operators) {
+      operators.push(escapeRegex(operator));
+    }
 
     // Operators are bounded by whitespace (but text will be trimmed at least on the start side...however
     // the end of the operator must have whitespace before any further text
     for (let i = 0; i < operators.length; i++) {
       const result = (new RegExp(`^${operators[i]}[\\s\\t\\r\\n\\v\\f\u2028\u2029]+([^]+)$`)).exec(text);
       if (result) {
-        return [result[1].trim(), operators[i]];
+        return [result[1].trim(), _operators[i]];
       }
     }
     // if we've made it this far, there is no operator, so go with the default (first in the list) if instructed to do so
     // Otherwise throw an exception for not finding the operator
     if (addDefault) {
-      return [text, defaultOperator];
+      return [text, _defaultOperator];
     } else {
       const err = new Error(`Expected operator near ${text}`);
       logErrorAndThrow(err, log, ec);
