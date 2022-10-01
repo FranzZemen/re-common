@@ -1,3 +1,4 @@
+export * from './parser-messages/external-index.js';
 export * from './util/external-index.js';
 export * from './scope/external-index.js';
 export * from './rule-element-ref/external-index.js';
