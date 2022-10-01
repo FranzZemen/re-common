@@ -45,7 +45,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * @param scope
    * @param inferredContext
    * @param ec
-   * @return The remaining text, the result or a promise to it, and arbitrary other object, if needed.
+   C* @return The remaining text, the result or a promise to it, and arbitrary other object, if needed.
    */
   abstract parse(remaining: string, scope: Map<string, any>, inferredContext?: any, ec?: ExecutionContextI): [string, any | Promise<any>, any?];
 
