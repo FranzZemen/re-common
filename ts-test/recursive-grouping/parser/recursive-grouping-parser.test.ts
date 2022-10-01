@@ -8,7 +8,7 @@ import {
   Fragment,
   FragmentParser,
   isFragment,
-  isRecursiveGrouping, RecursiveGrouping,
+  isRecursiveGrouping, ParserMessages, RecursiveGrouping,
   RecursiveGroupingParser,
   RecursiveGroupingParseResult, ResolvedRecursiveGroupingParseResult,
   Scope
@@ -35,14 +35,14 @@ class TestFragmentParser extends FragmentParser<TestReference> {
     super();
   }
 
-  parse(Fragment: string, scope:Scope, ec?: ExecutionContextI): [string, TestReference] {
+  parse(Fragment: string, scope:Scope, ec?: ExecutionContextI): [string, TestReference, ParserMessages] {
     const result = /^(HelloWorld)\s*([^]*)$/.exec(Fragment);
     const ref: TestReference = {value: undefined};
     if (result) {
       ref.value = result[1];
       Fragment = result[2];
     }
-    return [Fragment, ref];
+    return [Fragment, ref, undefined];
   }
 }
 

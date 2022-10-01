@@ -1,6 +1,7 @@
 import {escapeRegex, ExecutionContextI, LoggerAdapter, ModuleResolver} from '@franzzemen/app-utility';
 import {EnhancedError, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
 import {isPromise} from 'node:util/types';
+import {ParserMessages} from '../../parser-messages/parser-messages.js';
 import {Scope} from '../../scope/scope.js';
 import {Fragment, RecursiveGrouping} from '../recursive-grouping.js';
 import {FragmentParser} from './fragment-parser.js';
@@ -14,9 +15,9 @@ export enum EndConditionType {
 }
 
 
-export type RecursiveGroupingParseResult<OperatorType, Reference> = [remaining: string, grouping: RecursiveGrouping<OperatorType, Reference>, endCondition: EndConditionType];
+export type RecursiveGroupingParseResult<OperatorType, Reference> = [remaining: string, grouping: RecursiveGrouping<OperatorType, Reference>, endCondition: EndConditionType, messages: ParserMessages];
 export type ResolvedRecursiveGroupingParseResult<OperatorType, Reference> =
-  RecursiveGroupingParseResult<OperatorType, Reference> | [remaining: string, groupingPromise: Promise<RecursiveGrouping<OperatorType, Reference>>, endCondition: EndConditionType];
+  RecursiveGroupingParseResult<OperatorType, Reference> | [remaining: string, groupingPromise: Promise<RecursiveGrouping<OperatorType, Reference>>, endCondition: EndConditionType, messages: ParserMessages];
 
 
 
@@ -45,9 +46,9 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
         .then(truVal => {
           return grouping;
         })
-      return [remaining, groupingPromise, endCondition];
+      return [remaining, groupingPromise, endCondition, undefined];
     }  else {
-      return [remaining, grouping, endCondition];
+      return [remaining, grouping, endCondition, undefined];
     }
   }
 
@@ -85,7 +86,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
     // Immediate test end conditions
     let [remaining, endCondition] = this.testEndCondition(text, endConditionTests, ec);
     if (endCondition !== EndConditionType.Noop) {
-      return [remaining, undefined, endCondition];
+      return [remaining, undefined, endCondition, undefined];
     }
 
     const thisGroup: RecursiveGrouping<OperatorType, Reference> = {group: [], operator};
@@ -136,7 +137,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
         break;
       }
     }
-    return [remaining, thisGroup, endCondition];
+    return [remaining, thisGroup, endCondition, undefined];
   }
 
 
