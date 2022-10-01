@@ -168,19 +168,22 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
   /**
    * Parses text for the next operator
    * @param text
-   * @param operators Note that the first to match will be matched, so this should be in proper sorted order
+   * @param _operators
    * @param addDefault
-   * @param defaultOperator
+   * @param _defaultOperator
    * @param ec
    * @return the remaining text after removing the operator and trailing white space as well as the operator OR
    * the original text and undefined if it does nto find an operator
    */
-  parseOperator(text, _operators: OperatorType[], addDefault: boolean, _defaultOperator: OperatorType, ec?: ExecutionContextI): [string, OperatorType] {
+  parseOperator(text, _operators: OperatorType[], addDefault: boolean, _defaultOperator: OperatorType, ec?: ExecutionContextI): [string, OperatorType, ParserMessages] {
     const log = new LoggerAdapter(ec, 'rules-engine', 'recursive-grouping-parser', RecursiveGroupingParser.name + 'parseOperator');
 
     const operators: string[]= [];
     for(let operator of _operators) {
-      operators.push(escapeRegex(operator));
+      // Need a type guard
+      if(typeof operator === 'string') {
+        operators.push(escapeRegex(operator));
+      }
     }
 
     // Operators are bounded by whitespace (but text will be trimmed at least on the start side...however
@@ -188,13 +191,13 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
     for (let i = 0; i < operators.length; i++) {
       const result = (new RegExp(`^${operators[i]}[\\s\\t\\r\\n\\v\\f\u2028\u2029]+([^]+)$`)).exec(text);
       if (result) {
-        return [result[1].trim(), _operators[i]];
+        return [result[1].trim(), _operators[i], undefined];
       }
     }
     // if we've made it this far, there is no operator, so go with the default (first in the list) if instructed to do so
     // Otherwise throw an exception for not finding the operator
     if (addDefault) {
-      return [text, _defaultOperator];
+      return [text, _defaultOperator, undefined];
     } else {
       const err = new Error(`Expected operator near ${text}`);
       logErrorAndThrow(err, log, ec);
