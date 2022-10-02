@@ -134,7 +134,7 @@ export class Scope extends Map<string, any> {
           setter: {
             ownerIsObject: true,
             objectRef: this,
-            setterFunction: 'addRuleElementReferenceSetter',
+            _function: 'addRuleElementReferenceSetter',
             paramsArray: [factory, ec]
           },
           action

@@ -114,7 +114,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
           setter: {
             ownerIsObject: true,
             objectRef: this,
-            setterFunction: 'resolveAddParser',
+            _function: 'resolveAddParser',
             paramsArray: [ec]
           }
         });
@@ -214,7 +214,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
         setter: {
           ownerIsObject: true,
           objectRef: this,
-          setterFunction: 'resolveAddParserAtStackIndex',
+          _function: 'resolveAddParserAtStackIndex',
           paramsArray: [stackIndex, ec],
         }
       });

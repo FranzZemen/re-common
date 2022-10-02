@@ -184,7 +184,7 @@ describe('re-common tests', () => {
         const action: ModuleResolutionAction = {
           ownerIsObject: true,
           objectRef: a,
-          actionFunction: 'setMine',
+          _function: 'setMine',
           paramsArray: [factoryName, undefined]
         }
 
