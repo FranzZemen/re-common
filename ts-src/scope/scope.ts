@@ -50,8 +50,29 @@ export class Scope extends Map<string, any> {
     }
   }
 
+
+  /**
+   * Get and consume hint text.  Resolve asynchronous loads normally with resolve (Asynchronous hints will not be immediately
+   * available.
+   * @param near
+   * @param prefix
+   * @param ec
+   * @return new text minus hints if applicable, and the Hints
+   */
   parseHints(near: string, prefix: string, ec?: ExecutionContextI) : [string, Hints] {
     return Hints.parseHints(this.moduleResolver, near, prefix, ec);
+  }
+
+  /**
+   * Get but do not consume hint text.  Resolve asynchronous loads normally with resolve (Asynchronous hints will not be immediately
+   * available.
+   * @param near
+   * @param prefix
+   * @param ec
+   * @return Hints, leaving text unchanged
+   */
+  peekHints(near: string, prefix: string, ec?: ExecutionContextI) : Hints {
+    return Hints.peekHints(this.moduleResolver, near, prefix, ec);
   }
 
   getRuleElementItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContextI): C {
