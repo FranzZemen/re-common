@@ -43,6 +43,10 @@ export class Scope extends Map<string, any> {
     }
   }
 
+  isResolved(): boolean {
+    return !this.moduleResolver.hasPendingResolutions();
+  }
+
   addUnsatisfiedRuleElementReference(refName: string, factoryName: string, ec?: ExecutionContextI) {
     const hasUnsatisfiedReference = this.unsatisfiedRuleElementReferences.some(unsatisfiedRuleElementReference => unsatisfiedRuleElementReference[0] === refName && unsatisfiedRuleElementReference[1] === factoryName);
     if(!hasUnsatisfiedReference) {
