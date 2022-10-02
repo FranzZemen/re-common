@@ -23,7 +23,7 @@ export class Scope extends Map<string, any> {
 
   public scopeName: string;
   public throwOnAsync = false;
-  private moduleResolver = new ModuleResolver();
+  protected moduleResolver = new ModuleResolver();
   private unsatisfiedRuleElementReferences: [refName: string, factoryName: string][] = [];
 
   constructor(protected options?: Options, parentScope?: Scope, ec?: ExecutionContextI) {
