@@ -1,6 +1,6 @@
 {
   "name": "@franzzemen/re-common",
-  "version": "7.0.19",
+  "version": "7.0.20",
   "description": "Common re elements",
   "type": "module",
   "main": "index.js",
@@ -19,7 +19,7 @@
   "homepage": "https://github.com/FranzZemen/re-common#readme",
   "devDependencies": {
     "@franzzemen/gulp-base": "^10.1.10",
-    "@franzzemen/npmu": "^2.0.1",
+    "@franzzemen/npmu": "^2.0.4",
     "@franzzemen/safe-config": "^2.0.45",
     "@types/chai": "^4.3.3",
     "@types/mocha": "^10.0.0",
