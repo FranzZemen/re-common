@@ -28,7 +28,7 @@ export class Scope extends Map<string, any> {
 
   constructor(protected options?: Options, parentScope?: Scope, ec?: ExecutionContextI) {
     super();
-    this.scopeName = this.constructor.name + '-' + v4();
+    this.scopeName = options?.name ? options.name : this.constructor.name + '-' + v4();
     this.set(Scope.ParentScope, parentScope);
     if (parentScope) {
       let childScopes: Scope [] = parentScope.get(Scope.ChildScopes);
@@ -196,9 +196,10 @@ export class Scope extends Map<string, any> {
     }
   }
 
-  private static clearResolutions(scope) {
+  private static clearResolutions(scope): Scope {
     scope.moduleResolver.clear();
     scope.unsatisfiedRuleElementReferences = [];
+    return scope;
   }
 
   private static satisfyUnsatisfiedRuleElementReferences(scope: Scope, ec?: ExecutionContextI): true {
@@ -251,7 +252,7 @@ export class Scope extends Map<string, any> {
   }
 
 
-  removeScopedFactoryItem<C extends HasRefName>(refNames: string [], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI) {
+  removeScopedFactoryItem<C extends HasRefName>(refNames: string [], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI) : Scope {
     let scope = this;
     do {
       scope.removeScopedFactoryItemsInScope(refNames, factoryKey, ec);
@@ -259,9 +260,10 @@ export class Scope extends Map<string, any> {
     if (overrideDown) {
       this.recurseRemoveScopedFactoryChildItems(refNames, factoryKey, ec);
     }
+    return this;
   }
 
-  private recurseRemoveScopedFactoryChildItems<C>(refNames: string[], factoryKey: string, ec) {
+  private recurseRemoveScopedFactoryChildItems<C>(refNames: string[], factoryKey: string, ec): Scope {
     if(this.get(Scope.ChildScopes) == undefined) {
       return;
     }
@@ -269,15 +271,17 @@ export class Scope extends Map<string, any> {
       childScope.removeScopedFactoryItemsInScope<C>(refNames, factoryKey, ec);
       childScope.recurseRemoveScopedFactoryChildItems<C>(refNames, factoryKey, ec);
     });
+    return this;
   }
 
-  private removeScopedFactoryItemsInScope<C>(refNames: string[], factoryKey: string, ec: ExecutionContextI) {
+  private removeScopedFactoryItemsInScope<C>(refNames: string[], factoryKey: string, ec: ExecutionContextI): Scope {
     const factory: ScopedFactory<C> = this.get(factoryKey);
     refNames.forEach(refName => {
       if (factory.hasRegistered(refName, ec)) {
         factory.unregister(refName, ec);
       }
     });
+    return this;
   }
 
   /**
@@ -348,38 +352,21 @@ export class Scope extends Map<string, any> {
   }
 
   /**
-   * For this scope, place it under a new parentScope.  Old parent scope will lose this 'child'
-   * @param scope
-   * @param parentScope
+   * For this scope, place it under a new parentScope.  Old parent scope will lose this 'child'. 7
+   * If this has no parent, then parentScope becomes the new parent Scope.
+   ** @param parentScope
    * @param ec
    */
-  reParent(parentScope: Scope, ec?: ExecutionContextI) {
+  reParent(parentScope: Scope, ec?: ExecutionContextI): Scope {
     if(parentScope) {
-      const existingParent = this.get(Scope.ParentScope);
-      if(existingParent) {
-        const parentChildScopes: Scope[] = existingParent.get(Scope.ChildScopes);
-        if(parentChildScopes) {
-          const thisScopeNdx = parentChildScopes.findIndex(item => item.scopeName === this.scopeName);
-          if(thisScopeNdx >= 0) {
-            parentChildScopes.splice(thisScopeNdx,1);
-          } else {
-            const log = new LoggerAdapter(ec, 're-common', 'scope', 'reParent');
-            const err = new Error ('Scope inconsistency...child scope not found in parent scope when re-parenting');
-            logErrorAndThrow(err, log, ec);
-          }
-        }
-      }
+      this.removeParent(ec);
       this.set(Scope.ParentScope, parentScope);
-      let parentChildScopes: Scope[] = parentScope.get(Scope.ChildScopes);
-      if(!parentChildScopes) {
-        parentChildScopes = [];
-        parentScope.set(Scope.ChildScopes, parentChildScopes);
-      }
-      parentChildScopes.push(this);
+      parentScope.addChild(this);
     }
+    return this;
   }
 
-  setRootParent(rootParent: Scope, ec?: ExecutionContextI) {
+  setRootParent(rootParent: Scope, ec?: ExecutionContextI): Scope {
     let scope: Scope = this;
     let parentScope: Scope;
     while ((parentScope = scope.get(Scope.ParentScope))) {
@@ -388,16 +375,59 @@ export class Scope extends Map<string, any> {
     if(scope.get(Scope.ParentScope)) {
       throw new Error('This should never happen');
     }
-    scope.set(Scope.ParentScope, rootParent);
+    scope.addParent(rootParent, ec);
+    return this;
   }
 
-/*
-  get(key: string): any {
-    const result = super.get(key);
-    if(!result) {
+  /**
+   * Synonym for reParent.  If current parentScope exists, it will replace it properly.
+   * @param parent
+   * @param ec
+   */
+  addParent(parent: Scope, ec?: ExecutionContextI): Scope {
+    return this.reParent(parent, ec);
+  }
 
+  /**
+   * Replaces child if it exists (by name)
+   * @param child
+   * @param ec
+   * @return Returns this
+   */
+  addChild(child: Scope, ec?: ExecutionContextI): Scope {
+    let childScopes: Scope [] = this.get(Scope.ChildScopes);
+    if(!childScopes) {
+      childScopes = [];
+      this.set(Scope.ChildScopes, childScopes);
+      childScopes.push(child);
+    } else {
+      const childScopeNdx = childScopes.findIndex(item => item.scopeName === this.scopeName);
+      if(childScopeNdx >= 0) {
+        childScopes.splice(childScopeNdx,1, child);
+      } else {
+        childScopes.push(child);
+      }
     }
+    return this;
   }
-*/
+
+  removeParent(ec?: ExecutionContextI): Scope {
+    const existingParent = this.get(Scope.ParentScope);
+    if(existingParent) {
+      const parentChildScopes: Scope[] = existingParent.get(Scope.ChildScopes);
+      if(parentChildScopes) {
+        const thisScopeNdx = parentChildScopes.findIndex(item => item.scopeName === this.scopeName);
+        if(thisScopeNdx >= 0) {
+          parentChildScopes.splice(thisScopeNdx,1);
+        } else {
+            const log = new LoggerAdapter(ec, 're-common', 'scope', 'removeParent');
+            const err = new Error ('Scope inconsistency...child scope not found in parent scope when removing parent');
+            logErrorAndThrow(err, log, ec);
+        }
+      }
+    }
+    return this;
+  }
+
 
 }

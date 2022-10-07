@@ -9,6 +9,7 @@ import 'mocha';
 import Validator from 'fastest-validator';
 import {isPromise} from 'node:util/types';
 import {
+  Options,
   RuleElementFactory,
   RuleElementInstanceReference,
   RuleElementModuleReference, RuleElementReference,
@@ -224,6 +225,18 @@ describe('re-common tests', () => {
           console.error ('Cannot reach here, es modules make it async');
           unreachableCode.should.be.true;
         }
+      })
+      it('should set root parent', () => {
+        const baseScope = new Scope({name: 'baseScope'});
+        const parent1 = new Scope({name: 'parent1'});
+        baseScope.setRootParent(parent1);
+        baseScope.get(Scope.ParentScope).should.exist;
+        parent1.get(Scope.ChildScopes).should.exist;
+        parent1.get(Scope.ChildScopes).length.should.equal(1);
+
+        const parent2 = new Scope({name: 'parent2'});
+        baseScope.setRootParent(parent2);
+        baseScope.getParentAtHeight(2).scopeName.should.equal('parent2');
       })
     });
   });
