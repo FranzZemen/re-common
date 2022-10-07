@@ -378,4 +378,26 @@ export class Scope extends Map<string, any> {
       parentChildScopes.push(this);
     }
   }
+
+  setRootParent(rootParent: Scope, ec?: ExecutionContextI) {
+    let scope: Scope = this;
+    let parentScope: Scope;
+    while ((parentScope = scope.get(Scope.ParentScope))) {
+      scope = parentScope;
+    }
+    if(scope.get(Scope.ParentScope)) {
+      throw new Error('This should never happen');
+    }
+    scope.set(Scope.ParentScope, rootParent);
+  }
+
+/*
+  get(key: string): any {
+    const result = super.get(key);
+    if(!result) {
+
+    }
+  }
+*/
+
 }
