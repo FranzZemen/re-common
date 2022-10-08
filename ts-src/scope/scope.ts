@@ -21,23 +21,17 @@ export class Scope extends Map<string, any> {
   public static ChildScopes = 'ChildScopes';
   public static ScopeName = 'ScopeName';
 
+  public options: Options;
   public scopeName: string;
   public throwOnAsync = false;
   protected moduleResolver = new ModuleResolver();
   private unsatisfiedRuleElementReferences: [refName: string, factoryName: string][] = [];
 
-  constructor(protected options?: Options, parentScope?: Scope, ec?: ExecutionContextI) {
+  constructor(options?: Options, parentScope?: Scope, ec?: ExecutionContextI) {
     super();
+    this.options = options;
     this.scopeName = options?.name ? options.name : this.constructor.name + '-' + v4();
-    this.set(Scope.ParentScope, parentScope);
-    if (parentScope) {
-      let childScopes: Scope [] = parentScope.get(Scope.ChildScopes);
-      if(!childScopes) {
-        childScopes = [];
-        parentScope.set(Scope.ChildScopes, childScopes);
-      }
-      childScopes.push(this);
-    }
+    this.addParent(parentScope, ec);
     if(options?.throwOnAsync !== undefined) {
       this.throwOnAsync = options.throwOnAsync;
     }
