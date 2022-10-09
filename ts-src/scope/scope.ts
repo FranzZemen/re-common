@@ -1,7 +1,9 @@
 import {
-  ExecutionContextI, Hints,
+  ExecutionContextI,
+  Hints,
   LoadPackageType,
-  LoggerAdapter, ModuleResolutionAction,
+  LoggerAdapter,
+  ModuleResolutionAction,
   ModuleResolutionResult,
   ModuleResolver
 } from '@franzzemen/app-utility';
@@ -10,7 +12,7 @@ import {ModuleResolutionSetterInvocation} from '@franzzemen/app-utility/module-r
 import {isPromise} from 'node:util/types';
 import {v4} from 'uuid';
 import {RuleElementFactory} from '../rule-element-ref/rule-element-factory.js';
-import {RuleElementInstanceReference, RuleElementReference} from '../rule-element-ref/rule-element-reference.js';
+import {RuleElementReference} from '../rule-element-ref/rule-element-reference.js';
 import {HasRefName} from '../util/has-ref-name.js';
 import {Options} from './options.js';
 import {ScopedFactory} from './scoped-factory.js';
@@ -32,128 +34,8 @@ export class Scope extends Map<string, any> {
     this.options = options;
     this.scopeName = options?.name ? options.name : this.constructor.name + '-' + v4();
     this.addParent(parentScope, ec);
-    if(options?.throwOnAsync !== undefined) {
+    if (options?.throwOnAsync !== undefined) {
       this.throwOnAsync = options.throwOnAsync;
-    }
-  }
-
-  isResolved(): boolean {
-    return !this.moduleResolver.hasPendingResolutions();
-  }
-
-  addUnsatisfiedRuleElementReference(refName: string, factoryName: string, ec?: ExecutionContextI) {
-    const hasUnsatisfiedReference = this.unsatisfiedRuleElementReferences.some(unsatisfiedRuleElementReference => unsatisfiedRuleElementReference[0] === refName && unsatisfiedRuleElementReference[1] === factoryName);
-    if(!hasUnsatisfiedReference) {
-      this.unsatisfiedRuleElementReferences.push([refName, factoryName]);
-    }
-  }
-
-
-  /**
-   * Get and consume hint text.  Resolve asynchronous loads normally with resolve (Asynchronous hints will not be immediately
-   * available.
-   * @param near
-   * @param prefix
-   * @param ec
-   * @return new text minus hints if applicable, and the Hints
-   */
-  parseHints(near: string, prefix: string, ec?: ExecutionContextI) : [string, Hints] {
-    return Hints.parseHints(this.moduleResolver, near, prefix, ec);
-  }
-
-  getRuleElementItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContextI): C {
-    return this.getScopedFactoryItem(refName, factoryKey, searchParent, ec);
-  }
-
-  getScopedFactoryItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContextI): C {
-    const factory: ScopedFactory<C> = this.get(factoryKey);
-    const c = factory.getRegistered(refName, ec);
-    if (c) {
-      return c;
-    } else if (searchParent) {
-      const parentScope = this.get(Scope.ParentScope) as Scope;
-      if (parentScope) {
-        return parentScope.getScopedFactoryItem<C>(refName, factoryKey, searchParent, ec);
-      }
-    }
-    return undefined;
-  }
-
-
-  /**
-   * Module Resolver setter
-   * @param refName
-   * @param instance
-   * @param result
-   * @param factory
-   * @param ec
-   */
-  addRuleElementReferenceSetter: ModuleResolutionSetterInvocation = (refName: string, instance: any, result:ModuleResolutionResult, factory: RuleElementFactory<any>, ec) => {
-    if(instance === undefined || result.resolution.loader.module === undefined) {
-      const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReference');
-      log.warn({refName, instance, result, factory}, 'No instance or no module');
-      logErrorAndThrow(new EnhancedError(`No instance or no module for refName ${refName}`));
-    }
-    factory.register({instanceRef: {refName, instance}, moduleRef: {refName, module: result.resolution.loader.module}});
-    return true;
-  }
-
-
-  addRuleElementReferenceItem<C>(ruleElementRef: RuleElementReference<C>, factoryKey: string | RuleElementFactory<any>, action?: ModuleResolutionAction, ec?: ExecutionContextI): C {
-    const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReferenceItem');
-    let factory: RuleElementFactory<any>;
-    if(typeof factoryKey === 'string') {
-      factory = this.get(factoryKey) as RuleElementFactory<any>;
-    } else {
-      factory = factoryKey;
-    }
-    if (ruleElementRef.instanceRef === undefined) {
-      if (ruleElementRef.moduleRef === undefined) {
-        logErrorAndThrow(new EnhancedError('Undefined instanceRef and moduleRef'), log, ec);
-      } else {
-        this.moduleResolver.add({
-          refName: ruleElementRef.moduleRef.refName,
-          loader: {
-            module: ruleElementRef.moduleRef.module,
-            loadPackageType: LoadPackageType.package
-          },
-          setter: {
-            ownerIsObject: true,
-            objectRef: this,
-            _function: 'addRuleElementReferenceSetter',
-            paramsArray: [factory, ec]
-          },
-          action
-        });
-        return undefined;
-      }
-    } else {
-      return factory.register(ruleElementRef,ec);
-    }
-  }
-  /**
-   * For pure instances this will not require scope.resolve(); For modules or mixed it will.
-   * @param ruleElementRefs
-   * @param factoryKey
-   * @param actions
-   * @param ec
-   */
-  addRuleElementReferenceItems<C>(ruleElementRefs: RuleElementReference<C>[], factoryKey: string | RuleElementFactory<any>, actions?: ModuleResolutionAction[], ec?: ExecutionContextI): C[] {
-    const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReferenceItems');
-    let factory: RuleElementFactory<any>;
-    if(typeof factoryKey === 'string') {
-      factory = this.get(factoryKey) as RuleElementFactory<any>;
-    } else {
-      factory = factoryKey;
-    }
-    if(ruleElementRefs === undefined) {
-      logErrorAndThrow(new EnhancedError('Undefined RuleElementReference<>[]'), log, ec);
-    } else {
-      const instances: C[] = [];
-      ruleElementRefs.forEach((ruleElementRef, ndx) => {
-        instances.push(this.addRuleElementReferenceItem(ruleElementRef, factory, actions ? actions[ndx] : undefined, ec))
-      });
-      return instances;
     }
   }
 
@@ -165,19 +47,19 @@ export class Scope extends Map<string, any> {
    */
   static resolve(scope: Scope, ec?: ExecutionContextI): true | Promise<true> {
     const childScopes = scope.get(Scope.ChildScopes) as Scope[];
-    if(childScopes && childScopes.length > 0) {
+    if (childScopes && childScopes.length > 0) {
       let reverse = childScopes.filter(child => true);
       reverse.reverse();
       let async = false;
       const promises: (true | Promise<true>)[] = [];
       reverse.forEach(child => {
         const trueOrPromise = Scope.resolve(child, ec);
-        if(isPromise(trueOrPromise)) {
+        if (isPromise(trueOrPromise)) {
           async = true;
         }
         promises.push(trueOrPromise);
-      })
-      if(async) {
+      });
+      if (async) {
         return Promise.all(promises)
           .then((truVals) => {
             return Scope.resolveLocal(scope, ec);
@@ -197,14 +79,14 @@ export class Scope extends Map<string, any> {
   }
 
   private static satisfyUnsatisfiedRuleElementReferences(scope: Scope, ec?: ExecutionContextI): true {
-    if(scope.unsatisfiedRuleElementReferences.length > 0) {
-      for(let i = scope.unsatisfiedRuleElementReferences.length - 1; i >= 0; i--) {
+    if (scope.unsatisfiedRuleElementReferences.length > 0) {
+      for (let i = scope.unsatisfiedRuleElementReferences.length - 1; i >= 0; i--) {
         let [refName, factoryName] = scope.unsatisfiedRuleElementReferences[i];
-        if(scope.hasScopedFactoryItem<any>(refName, factoryName, ec)) {
-          scope.unsatisfiedRuleElementReferences.splice(i,1);
+        if (scope.hasScopedFactoryItem<any>(refName, factoryName, ec)) {
+          scope.unsatisfiedRuleElementReferences.splice(i, 1);
         }
       }
-      if(scope.unsatisfiedRuleElementReferences.length > 0) {
+      if (scope.unsatisfiedRuleElementReferences.length > 0) {
         const log = new LoggerAdapter(ec, 're-common', 'scope', 'satisfyUnsatisfiedRuleElementReferences');
         log.warn(scope, `No module found for at least one refName/factoryName`);
         logErrorAndThrow(new EnhancedError(`No module found for at least one refName/factoryName`), log, ec);
@@ -216,7 +98,7 @@ export class Scope extends Map<string, any> {
     }
   }
 
-  private static resolveLocal(scope: Scope, ec?: ExecutionContextI) : true | Promise<true> {
+  private static resolveLocal(scope: Scope, ec?: ExecutionContextI): true | Promise<true> {
 
     if (scope.moduleResolver.hasPendingResolutions()) {
       const resultsOrPromises = scope.moduleResolver.resolve(ec);
@@ -245,8 +127,125 @@ export class Scope extends Map<string, any> {
     }
   }
 
+  isResolved(): boolean {
+    return !this.moduleResolver.hasPendingResolutions();
+  }
 
-  removeScopedFactoryItem<C extends HasRefName>(refNames: string [], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI) : Scope {
+  addUnsatisfiedRuleElementReference(refName: string, factoryName: string, ec?: ExecutionContextI) {
+    const hasUnsatisfiedReference = this.unsatisfiedRuleElementReferences.some(unsatisfiedRuleElementReference => unsatisfiedRuleElementReference[0] === refName && unsatisfiedRuleElementReference[1] === factoryName);
+    if (!hasUnsatisfiedReference) {
+      this.unsatisfiedRuleElementReferences.push([refName, factoryName]);
+    }
+  }
+
+  /**
+   * Get and consume hint text.  Resolve asynchronous loads normally with resolve (Asynchronous hints will not be immediately
+   * available.
+   * @param near
+   * @param prefix
+   * @param ec
+   * @return new text minus hints if applicable, and the Hints
+   */
+  parseHints(near: string, prefix: string, ec?: ExecutionContextI): [string, Hints] {
+    return Hints.parseHints(this.moduleResolver, near, prefix, ec);
+  }
+
+  getRuleElementItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContextI): C {
+    return this.getScopedFactoryItem(refName, factoryKey, searchParent, ec);
+  }
+
+  getScopedFactoryItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContextI): C {
+    const factory: ScopedFactory<C> = this.get(factoryKey);
+    const c = factory.getRegistered(refName, ec);
+    if (c) {
+      return c;
+    } else if (searchParent) {
+      const parentScope = this.get(Scope.ParentScope) as Scope;
+      if (parentScope) {
+        return parentScope.getScopedFactoryItem<C>(refName, factoryKey, searchParent, ec);
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Module Resolver setter
+   * @param refName
+   * @param instance
+   * @param result
+   * @param factory
+   * @param ec
+   */
+  addRuleElementReferenceSetter: ModuleResolutionSetterInvocation = (refName: string, instance: any, result: ModuleResolutionResult, factory: RuleElementFactory<any>, ec) => {
+    if (instance === undefined || result.resolution.loader.module === undefined) {
+      const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReference');
+      log.warn({refName, instance, result, factory}, 'No instance or no module');
+      logErrorAndThrow(new EnhancedError(`No instance or no module for refName ${refName}`));
+    }
+    factory.register({instanceRef: {refName, instance}, moduleRef: {refName, module: result.resolution.loader.module}});
+    return true;
+  };
+
+  addRuleElementReferenceItem<C>(ruleElementRef: RuleElementReference<C>, factoryKey: string | RuleElementFactory<any>, action?: ModuleResolutionAction, ec?: ExecutionContextI): C {
+    const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReferenceItem');
+    let factory: RuleElementFactory<any>;
+    if (typeof factoryKey === 'string') {
+      factory = this.get(factoryKey) as RuleElementFactory<any>;
+    } else {
+      factory = factoryKey;
+    }
+    if (ruleElementRef.instanceRef === undefined) {
+      if (ruleElementRef.moduleRef === undefined) {
+        logErrorAndThrow(new EnhancedError('Undefined instanceRef and moduleRef'), log, ec);
+      } else {
+        this.moduleResolver.add({
+          refName: ruleElementRef.moduleRef.refName,
+          loader: {
+            module: ruleElementRef.moduleRef.module,
+            loadPackageType: LoadPackageType.package
+          },
+          setter: {
+            ownerIsObject: true,
+            objectRef: this,
+            _function: 'addRuleElementReferenceSetter',
+            paramsArray: [factory, ec]
+          },
+          action
+        });
+        return undefined;
+      }
+    } else {
+      return factory.register(ruleElementRef, ec);
+    }
+  }
+
+  /**
+   * For pure instances this will not require scope.resolve(); For modules or mixed it will.
+   * @param ruleElementRefs
+   * @param factoryKey
+   * @param actions
+   * @param ec
+   */
+  addRuleElementReferenceItems<C>(ruleElementRefs: RuleElementReference<C>[], factoryKey: string | RuleElementFactory<any>, actions?: ModuleResolutionAction[], ec?: ExecutionContextI): C[] {
+    const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReferenceItems');
+    let factory: RuleElementFactory<any>;
+    if (typeof factoryKey === 'string') {
+      factory = this.get(factoryKey) as RuleElementFactory<any>;
+    } else {
+      factory = factoryKey;
+    }
+    if (ruleElementRefs === undefined) {
+      logErrorAndThrow(new EnhancedError('Undefined RuleElementReference<>[]'), log, ec);
+    } else {
+      const instances: C[] = [];
+      ruleElementRefs.forEach((ruleElementRef, ndx) => {
+        instances.push(this.addRuleElementReferenceItem(ruleElementRef, factory, actions ? actions[ndx] : undefined, ec));
+      });
+      return instances;
+    }
+  }
+
+  removeScopedFactoryItem<C extends HasRefName>(refNames: string [], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContextI): Scope {
     let scope = this;
     do {
       scope.removeScopedFactoryItemsInScope(refNames, factoryKey, ec);
@@ -254,27 +253,6 @@ export class Scope extends Map<string, any> {
     if (overrideDown) {
       this.recurseRemoveScopedFactoryChildItems(refNames, factoryKey, ec);
     }
-    return this;
-  }
-
-  private recurseRemoveScopedFactoryChildItems<C>(refNames: string[], factoryKey: string, ec): Scope {
-    if(this.get(Scope.ChildScopes) == undefined) {
-      return;
-    }
-    (this.get(Scope.ChildScopes) as Scope[]).forEach(childScope => {
-      childScope.removeScopedFactoryItemsInScope<C>(refNames, factoryKey, ec);
-      childScope.recurseRemoveScopedFactoryChildItems<C>(refNames, factoryKey, ec);
-    });
-    return this;
-  }
-
-  private removeScopedFactoryItemsInScope<C>(refNames: string[], factoryKey: string, ec: ExecutionContextI): Scope {
-    const factory: ScopedFactory<C> = this.get(factoryKey);
-    refNames.forEach(refName => {
-      if (factory.hasRegistered(refName, ec)) {
-        factory.unregister(refName, ec);
-      }
-    });
     return this;
   }
 
@@ -293,8 +271,8 @@ export class Scope extends Map<string, any> {
 
   getParentAtHeight(height: number, execContext?: ExecutionContextI): Scope {
     let parent: Scope;
-    for(let i = 0; i < height; i++) {
-      if(i === 0) {
+    for (let i = 0; i < height; i++) {
+      if (i === 0) {
         parent = this.get(Scope.ParentScope);
       } else {
         parent = parent.get(Scope.ParentScope);
@@ -306,7 +284,7 @@ export class Scope extends Map<string, any> {
 
   hasScopedFactoryItem<C>(refName: string, factoryKey: string, ec?: ExecutionContextI): boolean {
     const factory = this.get(factoryKey);
-    if(factory.hasRegistered(refName, ec)) {
+    if (factory.hasRegistered(refName, ec)) {
       return true;
     } else {
       const parentScope = this.get(Scope.ParentScope) as Scope;
@@ -317,20 +295,19 @@ export class Scope extends Map<string, any> {
     return false;
   }
 
-  // Are two scopes (reasonably) the same?  This is not fully exact.
   // It purposefully does not force the two scopes or their contents to be of the same instance
   isSameScope(o: Scope): boolean {
-    if(this === o) {
+    if (this === o) {
       return true;
     }
 
-    if(this.typeOfScope() === o.typeOfScope() && this.size == o.size) {
+    if (this.typeOfScope() === o.typeOfScope() && this.size == o.size) {
       let iterator = this.keys();
       let match = true;
       // For now, we just match all the keys...
       // TODO: compare values?
-      for(let key of iterator) {
-        if(!o.has(key)) {
+      for (let key of iterator) {
+        if (!o.has(key)) {
           match = false;
           break;
         }
@@ -345,6 +322,8 @@ export class Scope extends Map<string, any> {
     return this.constructor.name;
   }
 
+  // Are two scopes (reasonably) the same?  This is not fully exact.
+
   /**
    * For this scope, place it under a new parentScope.  Old parent scope will lose this 'child'. 7
    * If this has no parent, then parentScope becomes the new parent Scope.
@@ -352,10 +331,9 @@ export class Scope extends Map<string, any> {
    * @param ec
    */
   reParent(parentScope: Scope, ec?: ExecutionContextI): Scope {
-    if(parentScope) {
+    if (parentScope) {
       this.removeParent(ec);
-      this.set(Scope.ParentScope, parentScope);
-      parentScope.addChild(this);
+      parentScope.addChild(this, ec);
     }
     return this;
   }
@@ -366,7 +344,7 @@ export class Scope extends Map<string, any> {
     while ((parentScope = scope.get(Scope.ParentScope))) {
       scope = parentScope;
     }
-    if(scope.get(Scope.ParentScope)) {
+    if (scope.get(Scope.ParentScope)) {
       throw new Error('This should never happen');
     }
     scope.addParent(rootParent, ec);
@@ -390,38 +368,62 @@ export class Scope extends Map<string, any> {
    */
   addChild(child: Scope, ec?: ExecutionContextI): Scope {
     let childScopes: Scope [] = this.get(Scope.ChildScopes);
-    if(!childScopes) {
+    if (!childScopes) {
       childScopes = [];
       this.set(Scope.ChildScopes, childScopes);
       childScopes.push(child);
     } else {
       const childScopeNdx = childScopes.findIndex(item => item.scopeName === this.scopeName);
-      if(childScopeNdx >= 0) {
-        childScopes.splice(childScopeNdx,1, child);
+      if (childScopeNdx >= 0) {
+        childScopes.splice(childScopeNdx, 1, child);
       } else {
         childScopes.push(child);
       }
     }
+    child.set(Scope.ParentScope, this);
     return this;
   }
 
   removeParent(ec?: ExecutionContextI): Scope {
     const existingParent = this.get(Scope.ParentScope);
-    if(existingParent) {
+    if (existingParent) {
       const parentChildScopes: Scope[] = existingParent.get(Scope.ChildScopes);
-      if(parentChildScopes) {
+      if (parentChildScopes) {
         const thisScopeNdx = parentChildScopes.findIndex(item => item.scopeName === this.scopeName);
-        if(thisScopeNdx >= 0) {
-          parentChildScopes.splice(thisScopeNdx,1);
+        if (thisScopeNdx >= 0) {
+          parentChildScopes.splice(thisScopeNdx, 1);
         } else {
-            const log = new LoggerAdapter(ec, 're-common', 'scope', 'removeParent');
-            const err = new Error ('Scope inconsistency...child scope not found in parent scope when removing parent');
-            logErrorAndThrow(err, log, ec);
+          const log = new LoggerAdapter(ec, 're-common', 'scope', 'removeParent');
+          const err = new Error('Scope inconsistency...child scope not found in parent scope when removing parent');
+          logErrorAndThrow(err, log, ec);
         }
       }
     }
     return this;
   }
 
+  private recurseRemoveScopedFactoryChildItems<C>(refNames: string[], factoryKey: string, ec): Scope {
+    if (this.get(Scope.ChildScopes) == undefined) {
+      return;
+    }
+    (this.get(Scope.ChildScopes) as Scope[]).forEach(childScope => {
+      childScope.removeScopedFactoryItemsInScope<C>(refNames, factoryKey, ec);
+      childScope.recurseRemoveScopedFactoryChildItems<C>(refNames, factoryKey, ec);
+    });
+    return this;
+  }
 
+  private removeScopedFactoryItemsInScope<C>(refNames: string[], factoryKey: string, ec: ExecutionContextI): Scope {
+    const factory: ScopedFactory<C> = this.get(factoryKey);
+    refNames.forEach(refName => {
+      if (factory.hasRegistered(refName, ec)) {
+        factory.unregister(refName, ec);
+      }
+    });
+    return this;
+  }
+
+  loadPendingResolutions(ref: any) {
+  }
 }
+
