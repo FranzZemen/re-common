@@ -93,3 +93,7 @@ export function isRuleElementInstanceReference(ref: any | RuleElementInstanceRef
   return (ref && typeof ref === 'object' && 'refName' in ref && 'instance' in ref && typeof ref.refName === 'string' && ref.refName.trim().length > 0);
 }
 
+export function isRuleElementReference(ref: any | RuleElementReference<any>): ref is RuleElementReference<any> {
+  return (ref && ('moduleRef' in ref || 'instanceRef' in ref));
+}
+

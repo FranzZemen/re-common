@@ -12,7 +12,7 @@ import {ModuleResolutionSetterInvocation} from '@franzzemen/app-utility/module-r
 import {isPromise} from 'node:util/types';
 import {v4} from 'uuid';
 import {RuleElementFactory} from '../rule-element-ref/rule-element-factory.js';
-import {RuleElementReference} from '../rule-element-ref/rule-element-reference.js';
+import {isRuleElementReference, RuleElementReference} from '../rule-element-ref/rule-element-reference.js';
 import {HasRefName} from '../util/has-ref-name.js';
 import {Options} from './options.js';
 import {ScopedFactory} from './scoped-factory.js';
@@ -176,11 +176,14 @@ export class Scope extends Map<string, any> {
    * @param factory
    * @param ec
    */
-  addRuleElementReferenceSetter: ModuleResolutionSetterInvocation = (refName: string, instance: any, result: ModuleResolutionResult, factory: RuleElementFactory<any>, ec) => {
+  addRuleElementReferenceSetter: ModuleResolutionSetterInvocation = (refName: string, instance: any, result: ModuleResolutionResult, factory: string | RuleElementFactory<any>, ec) => {
     if (instance === undefined || result.resolution.loader.module === undefined) {
       const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReference');
       log.warn({refName, instance, result, factory}, 'No instance or no module');
       logErrorAndThrow(new EnhancedError(`No instance or no module for refName ${refName}`));
+    }
+    if (typeof factory === 'string') {
+      factory = this.get(factory) as RuleElementFactory<any>;
     }
     factory.register({instanceRef: {refName, instance}, moduleRef: {refName, module: result.resolution.loader.module}});
     return true;
@@ -195,25 +198,7 @@ export class Scope extends Map<string, any> {
       factory = factoryKey;
     }
     if (ruleElementRef.instanceRef === undefined) {
-      if (ruleElementRef.moduleRef === undefined) {
-        logErrorAndThrow(new EnhancedError('Undefined instanceRef and moduleRef'), log, ec);
-      } else {
-        this.moduleResolver.add({
-          refName: ruleElementRef.moduleRef.refName,
-          loader: {
-            module: ruleElementRef.moduleRef.module,
-            loadPackageType: LoadPackageType.package
-          },
-          setter: {
-            ownerIsObject: true,
-            objectRef: this,
-            _function: 'addRuleElementReferenceSetter',
-            paramsArray: [factory, ec]
-          },
-          action
-        });
-        return undefined;
-      }
+      this.addRuleElementReferenceItemResolution<C>(ruleElementRef, factoryKey, action, ec);
     } else {
       return factory.register(ruleElementRef, ec);
     }
@@ -322,8 +307,6 @@ export class Scope extends Map<string, any> {
     return this.constructor.name;
   }
 
-  // Are two scopes (reasonably) the same?  This is not fully exact.
-
   /**
    * For this scope, place it under a new parentScope.  Old parent scope will lose this 'child'. 7
    * If this has no parent, then parentScope becomes the new parent Scope.
@@ -337,6 +320,8 @@ export class Scope extends Map<string, any> {
     }
     return this;
   }
+
+  // Are two scopes (reasonably) the same?  This is not fully exact.
 
   setRootParent(rootParent: Scope, ec?: ExecutionContextI): Scope {
     let scope: Scope = this;
@@ -402,6 +387,31 @@ export class Scope extends Map<string, any> {
     return this;
   }
 
+
+
+  protected addRuleElementReferenceItemResolution<C>(ruleElementRef: RuleElementReference<C>, factory: string | RuleElementFactory<any>, action?: ModuleResolutionAction, ec?: ExecutionContextI): Scope {
+    const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReferenceItemResolution');
+    if (ruleElementRef.moduleRef === undefined) {
+      logErrorAndThrow(new EnhancedError('Undefined moduleRef'), log, ec);
+    } else {
+      this.moduleResolver.add({
+        refName: ruleElementRef.moduleRef.refName,
+        loader: {
+          module: ruleElementRef.moduleRef.module,
+          loadPackageType: LoadPackageType.package
+        },
+        setter: {
+          ownerIsObject: true,
+          objectRef: this,
+          _function: 'addRuleElementReferenceSetter',
+          paramsArray: [factory, ec]
+        },
+        action
+      });
+      return undefined;
+    }
+  }
+
   private recurseRemoveScopedFactoryChildItems<C>(refNames: string[], factoryKey: string, ec): Scope {
     if (this.get(Scope.ChildScopes) == undefined) {
       return;
@@ -422,10 +432,12 @@ export class Scope extends Map<string, any> {
     });
     return this;
   }
-
-  loadPendingResolutionsFromReferences(ref: any, ec?: ExecutionContextI) {
-    if(this.moduleResolver.isResolving) {
+  loadPendingResolutionsFromReferences(ref: any | RuleElementReference<any>, factory?: string, action?: ModuleResolutionAction, ec?: ExecutionContextI) {
+    if (this.moduleResolver.isResolving) {
       logErrorAndThrow(`Cannot load while resolving`, new LoggerAdapter(ec, 're-common', 'scope', 'loadPendingResolutionsFromReferences'));
+    }
+    if (isRuleElementReference(ref) && factory && action) {
+      this.addRuleElementReferenceItemResolution(ref, factory, action ,ec);
     }
   }
 }
