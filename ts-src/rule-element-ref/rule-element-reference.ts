@@ -1,8 +1,4 @@
-import {ModuleDefinition} from '@franzzemen/app-utility';
-
-export function copyModule(module: ModuleDefinition): ModuleDefinition {
-  return {moduleName: module.moduleName, functionName: module.functionName, constructorName: module.constructorName};
-}
+import {_mergeModuleDefinition, ModuleDefinition} from '@franzzemen/app-utility';
 
 /**
  * Refers to the definition of rule element from a module specification
@@ -10,10 +6,6 @@ export function copyModule(module: ModuleDefinition): ModuleDefinition {
 export interface RuleElementModuleReference {
   refName: string;
   module: ModuleDefinition;
-}
-
-export function copyRuleElementModuleReference (ref: RuleElementModuleReference): RuleElementModuleReference {
-  return {refName: ref.refName, module: copyModule(ref.module)};
 }
 
 /**
@@ -25,9 +17,45 @@ export interface RuleElementInstanceReference<C> {
 }
 
 
-export class RuleElementReference<C> {
+export interface RuleElementReference<C> {
   moduleRef?: RuleElementModuleReference;
   instanceRef?: RuleElementInstanceReference<C>;
+}
+
+export function _mergeRuleElementModuleReference(target?: RuleElementModuleReference, source?: RuleElementModuleReference, mergeInto = false) : RuleElementModuleReference {
+  if(!target && !source) {
+    return undefined;
+  }
+  const _target: Partial<RuleElementModuleReference> = mergeInto ? target ? target : {} : {};
+  _target.refName = source?.refName ? source.refName : target?.refName;
+  _target.module = _mergeModuleDefinition(target?.module, source?.module, mergeInto);
+  return _target as RuleElementModuleReference;
+}
+
+/**
+ * Note that instance is copied by reference, not a deep copy
+ * @param target
+ * @param source
+ * @param mergeInto
+ */
+export function _mergeRuleElementInstanceReference<C>(target?: RuleElementInstanceReference<C>, source?: RuleElementInstanceReference<C>, mergeInto = false) {
+  if(!target && !source) {
+    return undefined;
+  }
+  const _target: Partial<RuleElementInstanceReference<C>> = mergeInto ? target ? target : {} : {};
+  _target.refName = source?.refName ? source.refName : target?.refName;
+  _target.instance = source?.instance ? source.instance : target?.instance;
+  return _target as RuleElementInstanceReference<C>
+}
+
+export function _mergeRuleElementReference<C>(target?: RuleElementReference<C>, source?: RuleElementReference<C>, mergeInto = false) {
+  if(!target && !source) {
+    return undefined;
+  }
+  const _target: Partial<RuleElementReference<C>> = mergeInto ? target ? target : {} : {};
+  _target.moduleRef = _mergeRuleElementModuleReference(target?.moduleRef, source?.moduleRef, mergeInto);
+  _target.instanceRef = _mergeRuleElementInstanceReference<C>(target?.instanceRef, source?.instanceRef, mergeInto);
+  return _target as RuleElementReference<C>;
 }
 
 
