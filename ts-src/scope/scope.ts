@@ -31,7 +31,7 @@ export class Scope extends Map<string, any> {
 
   constructor(options?: Options, parentScope?: Scope, ec?: ExecutionContextI) {
     super();
-    this.options = options;
+    this.options = options ? options : {};
     this.scopeName = options?.name ? options.name : this.constructor.name + '-' + v4();
     this.addParent(parentScope, ec);
     if (options?.throwOnAsync !== undefined) {
@@ -423,7 +423,10 @@ export class Scope extends Map<string, any> {
     return this;
   }
 
-  loadPendingResolutions(ref: any) {
+  loadPendingResolutionsFromReferences(ref: any, ec?: ExecutionContextI) {
+    if(this.moduleResolver.isResolving) {
+      logErrorAndThrow(`Cannot load while resolving`, new LoggerAdapter(ec, 're-common', 'scope', 'loadPendingResolutionsFromReferences'));
+    }
   }
 }
 
