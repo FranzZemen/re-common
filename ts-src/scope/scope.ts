@@ -432,6 +432,7 @@ export class Scope extends Map<string, any> {
     });
     return this;
   }
+  /*
   loadPendingResolutionsFromReferences(ref: any | RuleElementReference<any>, factory?: string, action?: ModuleResolutionAction, ec?: ExecutionContextI) {
     if (this.moduleResolver.isResolving) {
       logErrorAndThrow(`Cannot load while resolving`, new LoggerAdapter(ec, 're-common', 'scope', 'loadPendingResolutionsFromReferences'));
@@ -439,6 +440,6 @@ export class Scope extends Map<string, any> {
     if (isRuleElementReference(ref) && factory && action) {
       this.addRuleElementReferenceItemResolution(ref, factory, action ,ec);
     }
-  }
+  }*/
 }
 
