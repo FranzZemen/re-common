@@ -9,6 +9,7 @@ import 'mocha';
 import Validator from 'fastest-validator';
 import {isPromise} from 'node:util/types';
 import {
+  _mergeOptions,
   Options,
   RuleElementFactory,
   RuleElementInstanceReference,
@@ -51,27 +52,47 @@ describe('re-common tests', () => {
         parentScope2.get(Scope.ChildScopes).length.should.equal(1);
         parentScope2.get(Scope.ChildScopes)[0].scopeName.should.equal(childScope.scopeName);
       });
-      it('should add an item to a factory', () =>{
+      it('should add an item to a factory', () => {
         const scope = new Scope();
         const factoryName = 'TestFactory';
         scope.set(factoryName, new RulesObjectImplFactory());
-        if (isPromise(scope.addRuleElementReferenceItems([{instanceRef: {refName: '1', instance: (new RuleElementImpl('1'))}}], factoryName))) {
+        if (isPromise(scope.addRuleElementReferenceItems([{
+          instanceRef: {
+            refName: '1',
+            instance: (new RuleElementImpl('1'))
+          }
+        }], factoryName))) {
           unreachableCode.should.be.true;
         }
         scope.get(factoryName).hasRegistered('1').should.be.true;
-        scope.hasScopedFactoryItem('1',factoryName).should.be.true;
+        scope.hasScopedFactoryItem('1', factoryName).should.be.true;
       });
       it('should remove an item from a factory', () => {
         const scope = new Scope();
         const factoryName = 'TestFactory';
         scope.set(factoryName, new RulesObjectImplFactory());
-        if(isPromise(scope.addRuleElementReferenceItems([{instanceRef: {refName: '1', instance: (new RuleElementImpl('1'))}}], factoryName))) {
+        if (isPromise(scope.addRuleElementReferenceItems([{
+          instanceRef: {
+            refName: '1',
+            instance: (new RuleElementImpl('1'))
+          }
+        }], factoryName))) {
           unreachableCode.should.be.true;
         }
-        if(isPromise(scope.addRuleElementReferenceItems([{instanceRef: {refName: '2', instance: (new RuleElementImpl('2'))}}], factoryName))) {
+        if (isPromise(scope.addRuleElementReferenceItems([{
+          instanceRef: {
+            refName: '2',
+            instance: (new RuleElementImpl('2'))
+          }
+        }], factoryName))) {
           unreachableCode.should.be.true;
         }
-        if(isPromise(scope.addRuleElementReferenceItems([{instanceRef: {refName: '3', instance: (new RuleElementImpl('3'))}}], factoryName))) {
+        if (isPromise(scope.addRuleElementReferenceItems([{
+          instanceRef: {
+            refName: '3',
+            instance: (new RuleElementImpl('3'))
+          }
+        }], factoryName))) {
           unreachableCode.should.be.true;
         }
         (scope.get(factoryName) as RuleElementFactory<RuleElementImpl>).unregister('2');
@@ -79,7 +100,7 @@ describe('re-common tests', () => {
         (scope.get(factoryName) as RuleElementFactory<RuleElementImpl>).hasRegistered('1').should.equal(true);
         (scope.get(factoryName) as RuleElementFactory<RuleElementImpl>).hasRegistered('3').should.equal(true);
         (scope.get(factoryName) as RuleElementFactory<RuleElementImpl>).hasRegistered('2').should.equal(false);
-      })
+      });
       /*
       OVERRIDE NOT IMPLEMENTED
       it('should override an item in the parent', () => {
@@ -149,7 +170,7 @@ describe('re-common tests', () => {
               }
             }
           }
-        }
+        };
 
         const module2: RuleElementModuleReference = {
           refName: 'Type2',
@@ -164,12 +185,12 @@ describe('re-common tests', () => {
               thisSequence: {type: 'number'}
             })
           }
-        }
+        };
 
         const item3: RuleElementInstanceReference<RuleElementImpl> = {
           refName: 'Type3',
           instance: new RuleElementImpl('Third')
-        }
+        };
 
         class AClass {
           refName: 'Type2';
@@ -178,8 +199,9 @@ describe('re-common tests', () => {
             const factory = scope.get(factoryName) as RulesObjectImplFactory;
             this.mine = factory.getRegistered(this.refName, ec);
             return true;
-          }
+          };
         }
+
         const a = new AClass();
 
         const action: ModuleResolutionAction = {
@@ -187,22 +209,22 @@ describe('re-common tests', () => {
           objectRef: a,
           _function: 'setMine',
           paramsArray: [factoryName, undefined]
-        }
+        };
 
         scope.addRuleElementReferenceItems([
           {moduleRef: module1}, {moduleRef: module2}, {instanceRef: item3}], factoryName, [
-            undefined, action, undefined]);
+          undefined, action, undefined]);
 
 
         let trueValOrPromise: true | Promise<true>;
         try {
-           trueValOrPromise = Scope.resolve(scope);
+          trueValOrPromise = Scope.resolve(scope);
         } catch (err) {
           console.error(err);
           unreachableCode.should.be.true;
         }
-        if(isPromise(trueValOrPromise)) {
-          trueValOrPromise.then (trueVal=> {
+        if (isPromise(trueValOrPromise)) {
+          trueValOrPromise.then(trueVal => {
             let impls: RuleElementImpl = scope.getRuleElementItem<RuleElementImpl>(module1.refName, factoryName, false);
             impls.refName.should.equal('First');
             impls.someFoo.should.equal('First');
@@ -218,14 +240,14 @@ describe('re-common tests', () => {
             factory.hasRegistered('Type3').should.be.true;
             expect(a.mine).to.exist;
           }, err => {
-            console.error (err);
+            console.error(err);
             unreachableCode.should.be.true;
-          })
+          });
         } else {
-          console.error ('Cannot reach here, es modules make it async');
+          console.error('Cannot reach here, es modules make it async');
           unreachableCode.should.be.true;
         }
-      })
+      });
       it('should set root parent', () => {
         const baseScope = new Scope({name: 'baseScope'});
         const parent1 = new Scope({name: 'parent1'});
@@ -237,7 +259,25 @@ describe('re-common tests', () => {
         const parent2 = new Scope({name: 'parent2'});
         baseScope.setRootParent(parent2);
         baseScope.getParentAtHeight(2).scopeName.should.equal('parent2');
-      })
+      });
+      it('should merge into', () => {
+        let source: Options = {name: 'Source', throwOnAsync: false};
+        let target: Options = {name: 'Target'};
+        let merged = _mergeOptions(target, source);
+        merged.name.should.equal('Source');
+        merged.throwOnAsync.should.exist;
+        merged.throwOnAsync.should.be.false;
+      });
+      it('should merge new', () => {
+        let source: Options = {name: 'Source', throwOnAsync: false};
+        let target: Options = {name: 'Target'};
+        let merged = _mergeOptions(target, source, false);
+        merged.name.should.equal('Source');
+        merged.throwOnAsync.should.exist;
+        merged.throwOnAsync.should.be.false;
+        (merged === target).should.be.false;
+      });
+
     });
   });
 });
