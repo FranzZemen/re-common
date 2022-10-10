@@ -74,8 +74,8 @@ export function execute() {
 }
 
 export function logParserMessages(parserMessages: ParserMessages, ec?: ExecutionContextI) {
-  const log = new LoggerAdapter(ec, 're-common', 'cli-common', 'logParserMessages');
   if (parserMessages) {
+    const log = new LoggerAdapter(ec, 're-common', 'cli-common', 'logParserMessages');
     let params: [data?: any, message?: string] = [];
     parserMessages.forEach(parserMessage => {
       params = [];
