@@ -42,12 +42,15 @@ export const defaultCliFactory = new CliFactory();
 export function execute() {
   let ec: ExecutionContextI;
   try {
-    const configContainer = loadJSONResource({moduleName: '../../../cli.json', moduleResolution: ModuleResolution.json}, defaultEC);
-    if(isPromise(configContainer)) {
+    const configContainer = loadJSONResource({
+      moduleName: '../../../cli.json',
+      moduleResolution: ModuleResolution.json
+    }, defaultEC);
+    if (isPromise(configContainer)) {
       const log = new LoggerAdapter(defaultEC, 're-common', 'cli-common', 'execute');
       log.error('Unsupported dynamic JSON load or schema validation');
       process.exit(2);
-    } else if(isAppConfigSync(configContainer) && configContainer?.log) {
+    } else if (isAppConfigSync(configContainer) && configContainer?.log) {
       ec = {config: configContainer};
     } else {
       ec = defaultEC;
@@ -58,20 +61,22 @@ export function execute() {
   const log = new LoggerAdapter(ec, 're-common', 'cli-common', 'execute');
 
   log.debug(process.argv, 'argv');
-  if(process.argv.length < 3) {
+  if (process.argv.length < 3) {
     log.error(`Parameters must start with keyword or -file[filename]`);
     process.exit(3);
   }
-  const regex = /^-file\[([a-zA-Z0-9.\/\\\-_]*)]$/;
-  const result = regex.exec(process.argv[2]);
-  if(result !== null) {
-    let filename = result[1];
-    try {
-      const file = readFileSync(filename, 'utf8');
-      log.info(file);
-    } catch (err) {
-      log.error(err);
-      process.exit(5);
+  if (process.argv.length > 3) {
+    const regex = /^-file\[([a-zA-Z0-9.\/\\\-_]*)]$/;
+    const result = regex.exec(process.argv[3]);
+    if (result !== null) {
+      let filename = result[1];
+      try {
+        const file = readFileSync(filename, 'utf8');
+        log.info(file);
+      } catch (err) {
+        log.error(err);
+        process.exit(5);
+      }
     }
   } else {
     const keyword = process.argv[2];
