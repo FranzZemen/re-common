@@ -65,40 +65,39 @@ export function execute() {
     log.error(`Parameters must start with keyword or -file[filename]`);
     process.exit(3);
   }
-  if (process.argv.length > 3) {
-    const regex = /^-file\[([a-zA-Z0-9.\/\\\-_]*)]$/;
-    let result = regex.exec(process.argv[3]);
-    if (result !== null) {
-      let filename = result[1];
-      try {
-        let file = readFileSync(filename, 'utf8');
-        file = file.trim();
-        const keywordRegex = /^([a-zA-z0-9\-_]+)[\s\t\r\n\v\f\u2028\u2029]*([^]+)$/;
-        let result = keywordRegex.exec(file);
-        if(result !== null) {
-          let keyword = result[1];
-          let remaining = result[2].trim();
-          log.debug(`keyword ${keyword} found`);
-          const cliImpl: CliImplementation = defaultCliFactory.getRegistered(keyword, ec);
-          if (!cliImpl) {
-            log.error(`keyword not in CliFactory`);
-            process.exit(4);
-          }
-          const argsRegex = /([^"\s\t\r\n\v\f\u2028\u2029]+)|("[^]+")+/g;
-          let args: string[] = [];
-          while ((result = argsRegex.exec(remaining)) !== null) {
-            args.push(result[1]);
-          }
-          log.debug(args, 'args');
-          cliImpl.cliFunction(args, ec);
-        } else {
-          log.error('File does not start with key word');
-          process.exit(6);
+
+  const regex = /^-file\[([a-zA-Z0-9.\/\\\-_]*)]$/;
+  let result = regex.exec(process.argv[3]);
+  if (result !== null) {
+    let filename = result[1];
+    try {
+      let file = readFileSync(filename, 'utf8');
+      file = file.trim();
+      const keywordRegex = /^([a-zA-z0-9\-_]+)[\s\t\r\n\v\f\u2028\u2029]*([^]+)$/;
+      let result = keywordRegex.exec(file);
+      if (result !== null) {
+        let keyword = result[1];
+        let remaining = result[2].trim();
+        log.debug(`keyword ${keyword} found`);
+        const cliImpl: CliImplementation = defaultCliFactory.getRegistered(keyword, ec);
+        if (!cliImpl) {
+          log.error(`keyword not in CliFactory`);
+          process.exit(4);
         }
-      } catch (err) {
-        log.error(err);
-        process.exit(5);
+        const argsRegex = /([^"\s\t\r\n\v\f\u2028\u2029]+)|("[^]+")+/g;
+        let args: string[] = [];
+        while ((result = argsRegex.exec(remaining)) !== null) {
+          args.push(result[1]);
+        }
+        log.debug(args, 'args');
+        cliImpl.cliFunction(args, ec);
+      } else {
+        log.error('File does not start with key word');
+        process.exit(6);
       }
+    } catch (err) {
+      log.error(err);
+      process.exit(5);
     }
   } else {
     const keyword = process.argv[2];
