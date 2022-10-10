@@ -67,7 +67,7 @@ export function execute() {
   }
 
   const regex = /^-file\[([a-zA-Z0-9.\/\\\-_]*)]$/;
-  let result = regex.exec(process.argv[3]);
+  let result = regex.exec(process.argv[2]);
   if (result !== null) {
     let filename = result[1];
     try {
