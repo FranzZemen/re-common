@@ -85,14 +85,15 @@ export function execute() {
           process.exit(4);
         }
         const argsRegex = /([^"\s\t\r\n\v\f\u2028\u2029]+)|("[^]+")+/g;
-        let args: string[] = [];
+        let args: string[] = [remaining];
+        /*
         while ((result = argsRegex.exec(remaining)) !== null) {
           if(result[1]) {
             args.push(result[1]);
           } else {
             args.push(result[2]);
           }
-        }
+        }*/
         log.debug(args, 'args');
         cliImpl.cliFunction(args, ec);
       } else {
