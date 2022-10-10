@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import {
   ExecutionContextI,
   isAppConfigSync,
@@ -58,19 +59,32 @@ export function execute() {
 
   log.debug(process.argv, 'argv');
   if(process.argv.length < 3) {
-    log.error(`Parameters must start with keyword`);
+    log.error(`Parameters must start with keyword or -file[filename]`);
     process.exit(3);
   }
-  const keyword = process.argv[2];
-  log.debug(`keyword ${keyword} found`);
-  const cliImpl: CliImplementation = defaultCliFactory.getRegistered(keyword, ec);
-  if(!cliImpl) {
-    log.error(`keyword not in CliFactory`);
-    process.exit(4);
+  const regex = /^-file\[([a-zA-Z0-9.\/\\\-_]*)]$/;
+  const result = regex.exec(process.argv[2]);
+  if(result !== null) {
+    let filename = result[1];
+    try {
+      const file = readFileSync(filename, 'utf8');
+      log.info(file);
+    } catch (err) {
+      log.error(err);
+      process.exit(5);
+    }
+  } else {
+    const keyword = process.argv[2];
+    log.debug(`keyword ${keyword} found`);
+    const cliImpl: CliImplementation = defaultCliFactory.getRegistered(keyword, ec);
+    if (!cliImpl) {
+      log.error(`keyword not in CliFactory`);
+      process.exit(4);
+    }
+    let args = process.argv.slice(3);
+    log.debug(args, 'args');
+    cliImpl.cliFunction(args, ec);
   }
-  let args = process.argv.slice(3);
-  log.debug(args, 'args');
-  cliImpl.cliFunction(args, ec);
 }
 
 export function logParserMessages(parserMessages: ParserMessages, ec?: ExecutionContextI) {
