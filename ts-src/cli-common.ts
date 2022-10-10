@@ -61,13 +61,19 @@ export function execute() {
   const log = new LoggerAdapter(ec, 're-common', 'cli-common', 'execute');
 
   log.debug(process.argv, 'argv');
-  if (process.argv.length < 3) {
-    log.error(`Parameters must start with keyword or -file[filename]`);
+  if (process.argv.length < 4) {
+    log.error(`Parameters are: keyword -file[filename]`);
     process.exit(3);
   }
-
+  const keyword = process.argv[2];
+  log.debug(`keyword ${keyword} found`);
+  const cliImpl: CliImplementation = defaultCliFactory.getRegistered(keyword, ec);
+  if (!cliImpl) {
+    log.error(`keyword not in CliFactory`);
+    process.exit(4);
+  }
   const regex = /^-file\[([a-zA-Z0-9.\/\\\-_]*)]$/;
-  let result = regex.exec(process.argv[2]);
+  let result = regex.exec(process.argv[3]);
   if (result !== null) {
     let filename = result[1];
     try {
@@ -86,14 +92,6 @@ export function execute() {
         }
         const argsRegex = /([^"\s\t\r\n\v\f\u2028\u2029]+)|("[^]+")+/g;
         let args: string[] = [remaining];
-        /*
-        while ((result = argsRegex.exec(remaining)) !== null) {
-          if(result[1]) {
-            args.push(result[1]);
-          } else {
-            args.push(result[2]);
-          }
-        }*/
         log.debug(args, 'args');
         cliImpl.cliFunction(args, ec);
       } else {
@@ -105,16 +103,8 @@ export function execute() {
       process.exit(5);
     }
   } else {
-    const keyword = process.argv[2];
-    log.debug(`keyword ${keyword} found`);
-    const cliImpl: CliImplementation = defaultCliFactory.getRegistered(keyword, ec);
-    if (!cliImpl) {
-      log.error(`keyword not in CliFactory`);
-      process.exit(4);
-    }
-    let args = process.argv.slice(3);
-    log.debug(args, 'args');
-    cliImpl.cliFunction(args, ec);
+    log.error(`Parameters are: keyword -file[filename], -file[filename] is missing`);
+    process.exit(7);
   }
 }
 
