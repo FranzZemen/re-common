@@ -6,6 +6,7 @@ import {
   ModuleResolution
 } from '@franzzemen/app-utility';
 import {isPromise} from 'node:util/types';
+import {ParserMessages, ParserMessageType} from './parser-messages/parser-messages.js';
 import {RuleElementFactory} from './rule-element-ref/rule-element-factory.js';
 
 export type CliFunction = (args: string[], ec?: ExecutionContextI) => void;
@@ -70,4 +71,29 @@ export function execute() {
   let args = process.argv.slice(3);
   log.debug(args, 'args');
   cliImpl.cliFunction(args, ec);
+}
+
+export function logParserMessages(parserMessages: ParserMessages, ec?: ExecutionContextI) {
+  const log = new LoggerAdapter(ec, 're-common', 'cli-common', 'logParserMessages');
+  if (parserMessages) {
+    let params: [data?: any, message?: string] = [];
+    parserMessages.forEach(parserMessage => {
+      params = [];
+      if (parserMessage.contextObject) {
+        params.push(parserMessage.contextObject);
+      }
+      params.push(parserMessage.message);
+      if (parserMessage.type === ParserMessageType.Info) {
+        log.info(...params);
+      } else if (parserMessage.type === ParserMessageType.Note) {
+        log.debug(...params);
+      } else if (parserMessage.type === ParserMessageType.Trivial) {
+        log.trace(...params);
+      } else if (parserMessage.type === ParserMessageType.Warn) {
+        log.warn(...params);
+      } else if (parserMessage.type === ParserMessageType.Error) {
+        log.error(parserMessage.message);
+      }
+    });
+  }
 }
