@@ -1,6 +1,6 @@
 {
   "name": "@franzzemen/re-common",
-  "version": "8.2.0",
+  "version": "8.3.0",
   "description": "Common re elements",
   "type": "module",
   "main": "index.js",

@@ -6,8 +6,11 @@ import {
   ModuleResolution
 } from '@franzzemen/app-utility';
 import {isPromise} from 'node:util/types';
+import {RuleElementFactory} from './rule-element-ref/rule-element-factory.js';
 
-export function execute(key: string, cliFunction: (args: string[], ec?: ExecutionContextI) => void, defaultEC?: ExecutionContextI) {
+export type CliFunction = (args: string[], ec?: ExecutionContextI) => void;
+
+export function execute(key: string, cliFunction: CliFunction, defaultEC?: ExecutionContextI) {
   const log = new LoggerAdapter(defaultEC, 're-common', 'cli-common', 'execute');
   log.debug(process.argv, 'argv');
   if(process.argv[2] !== key) {
@@ -32,3 +35,17 @@ export function execute(key: string, cliFunction: (args: string[], ec?: Executio
   }
   cliFunction(args, ec);
 }
+
+export class CliFactory extends RuleElementFactory<CliFunction> {
+  constructor() {
+    super();
+  }
+
+  protected isC(obj: any): obj is CliFunction {
+    if(typeof obj === 'function') {
+      return true;
+    }
+  }
+}
+
+export const defaultCliFactory = new CliFactory();
