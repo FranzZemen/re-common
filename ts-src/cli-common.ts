@@ -87,7 +87,11 @@ export function execute() {
         const argsRegex = /([^"\s\t\r\n\v\f\u2028\u2029]+)|("[^]+")+/g;
         let args: string[] = [];
         while ((result = argsRegex.exec(remaining)) !== null) {
-          args.push(result[1]);
+          if(result[1]) {
+            args.push(result[1]);
+          } else {
+            args.push(result[2]);
+          }
         }
         log.debug(args, 'args');
         cliImpl.cliFunction(args, ec);
