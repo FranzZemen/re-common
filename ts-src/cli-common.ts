@@ -36,15 +36,19 @@ export function execute(key: string, cliFunction: CliFunction, defaultEC?: Execu
   cliFunction(args, ec);
 }
 
-export class CliFactory extends RuleElementFactory<CliFunction> {
+export class CliImplementation {
+  constructor(public commandLineKey: string, public cliFunction: CliFunction) {
+  }
+}
+
+// TODO:  This makes CliImplementation loadable
+export class CliFactory extends RuleElementFactory<CliImplementation> {
   constructor() {
     super();
   }
 
-  protected isC(obj: any): obj is CliFunction {
-    if(typeof obj === 'function') {
-      return true;
-    }
+  protected isC(obj: any): obj is CliImplementation {
+    return obj instanceof CliImplementation;
   }
 }
 
