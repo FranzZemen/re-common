@@ -13,6 +13,6 @@ export function pushMessages(messages: ParserMessages, message: ParserMessage): 
   return messages;
 }
 
-export class PsStdMsg {
+export class StandardParserMessages {
 
 }
