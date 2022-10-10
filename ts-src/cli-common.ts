@@ -10,7 +10,7 @@ import {isPromise} from 'node:util/types';
 import {ParserMessages, ParserMessageType} from './parser-messages/parser-messages.js';
 import {RuleElementFactory} from './rule-element-ref/rule-element-factory.js';
 
-export type CliFunction = (args: string[], ec?: ExecutionContextI) => void;
+export type CliFunction = (text: string, ec?: ExecutionContextI) => void;
 
 const defaultEC: ExecutionContextI = {
   config: {
@@ -79,25 +79,7 @@ export function execute() {
     try {
       let file = readFileSync(filename, 'utf8');
       file = file.trim();
-      const keywordRegex = /^([a-zA-z0-9\-_]+)[\s\t\r\n\v\f\u2028\u2029]*([^]+)$/;
-      let result = keywordRegex.exec(file);
-      if (result !== null) {
-        let keyword = result[1];
-        let remaining = result[2].trim();
-        log.debug(`keyword ${keyword} found`);
-        const cliImpl: CliImplementation = defaultCliFactory.getRegistered(keyword, ec);
-        if (!cliImpl) {
-          log.error(`keyword not in CliFactory`);
-          process.exit(4);
-        }
-        const argsRegex = /([^"\s\t\r\n\v\f\u2028\u2029]+)|("[^]+")+/g;
-        let args: string[] = [remaining];
-        log.debug(args, 'args');
-        cliImpl.cliFunction(args, ec);
-      } else {
-        log.error('File does not start with key word');
-        process.exit(6);
-      }
+      cliImpl.cliFunction(file, ec);
     } catch (err) {
       log.error(err);
       process.exit(5);
