@@ -91,7 +91,7 @@ export function execute() {
 }
 
 export function cliFileIterations(text: string, cliFunction: CliFunction, ec?: ExecutionContextI) {
-  const log = new LoggerAdapter(ec, 're-common', 'cli', 'cliFileIterations');
+  const log = new LoggerAdapter(ec, 're-common', 'cli-common', 'cliFileIterations');
   log.info(`text to parse:`);
   text = text.replaceAll('\r\n', '\r\n   ');
   log.info(text);
