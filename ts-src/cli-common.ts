@@ -1,4 +1,3 @@
-import {readFileSync} from 'node:fs';
 import {
   ExecutionContextI,
   isAppConfigSync,
@@ -124,7 +123,10 @@ export function cliIterations<T>(cliData: CliFormat<T>, cliFunction: CliFunction
   log.info(cliData);
   log.info('Iterating');
   log.info(breakLine);
-  cliData.iterations.forEach(iteration => {
+  cliData.iterations.forEach((iteration, ndx) => {
+    if(ndx > 0) {
+      log.info('-----')
+    }
     if(iteration.description) {
       log.info(`Description: ${iteration.description}`)
     }
