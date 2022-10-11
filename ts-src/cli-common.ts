@@ -79,7 +79,7 @@ export function execute() {
     try {
       let file = readFileSync(filename, 'utf8');
       file = file.trim();
-      cliImpl.cliFunction(file, ec);
+      cliFileIterations(file, cliImpl.cliFunction, ec);
     } catch (err) {
       log.error(err);
       process.exit(5);
@@ -87,6 +87,24 @@ export function execute() {
   } else {
     log.error(`Parameters are: keyword -file[filename], -file[filename] is missing`);
     process.exit(7);
+  }
+}
+
+export function cliFileIterations(text: string, cliFunction: CliFunction, ec?: ExecutionContextI) {
+  const log = new LoggerAdapter(ec, 're-common', 'cli', 'cliFileIterations');
+  log.info(`text to parse:`);
+  text = text.replaceAll('\r\n', '\r\n   ');
+  log.info(text);
+  log.info('-----');
+  let tokens = text.split('-----');
+  for (let i = 0; i < tokens.length; i++) {
+    if (i > 0) {
+      log.info('-----');
+    }
+    let iteration = tokens[i].trim();
+    log.info(`Iteration: ${iteration}`);
+    log.info('-');
+    cliFunction(iteration, ec);
   }
 }
 
