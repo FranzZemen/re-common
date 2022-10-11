@@ -10,7 +10,7 @@ import {isPromise} from 'node:util/types';
 import {ParserMessages, ParserMessageType} from './parser-messages/parser-messages.js';
 import {RuleElementFactory} from './rule-element-ref/rule-element-factory.js';
 
-export type CliFunction = (text: string, ec?: ExecutionContextI) => void;
+export type CliFunction<T> = (t: T, ec?: ExecutionContextI) => void;
 
 const defaultEC: ExecutionContextI = {
   config: {
@@ -21,7 +21,7 @@ const defaultEC: ExecutionContextI = {
 };
 
 export class CliImplementation {
-  constructor(public commandLineKey: string, public cliFunction: CliFunction) {
+  constructor(public commandLineKey: string, public cliFunction: CliFunction<any>) {
   }
 }
 
@@ -38,8 +38,21 @@ export class CliFactory extends RuleElementFactory<CliImplementation> {
 
 export const defaultCliFactory = new CliFactory();
 
+export interface CliIteration<T> {
+  description?: string;
+  t: T
+}
 
-export function execute() {
+
+export interface CliFormat<T> {
+  iterations: CliIteration<T>[];
+}
+
+export function isCliFormat(cliFormat: Promise<CliFormat<any>> | CliFormat<any> | any): cliFormat is CliFormat<any> {
+  return 'iterations' in cliFormat;
+}
+
+export function execute<T>() {
   let ec: ExecutionContextI;
   try {
     const configContainer = loadJSONResource({
@@ -77,9 +90,21 @@ export function execute() {
   if (result !== null) {
     let filename = result[1];
     try {
+      /* Now going with JSON
       let file = readFileSync(filename, 'utf8');
       file = file.trim();
-      cliFileIterations(file, cliImpl.cliFunction, ec);
+       */
+      const cliData = loadJSONResource<CliFormat<T>>({
+        moduleName: filename,
+        moduleResolution: ModuleResolution.json
+      }, ec);
+      // For now, reject promises caused by async validations...also not using es module loads
+      if (isPromise(cliData)) {
+        log.error('Not using promises for this functionality');
+        process.exit(9);
+      } else {
+        cliIterations<T>(cliData, cliImpl.cliFunction, ec);
+      }
     } catch (err) {
       log.error(err);
       process.exit(5);
@@ -88,10 +113,27 @@ export function execute() {
     log.error(`Parameters are: keyword -file[filename], -file[filename] is missing`);
     process.exit(7);
   }
+
 }
 
-export function cliFileIterations(text: string, cliFunction: CliFunction, ec?: ExecutionContextI) {
-  const log = new LoggerAdapter(ec, 're-common', 'cli-common', 'cliFileIterations');
+export const breakLine = '-----';
+
+export function cliIterations<T>(cliData: CliFormat<T>, cliFunction: CliFunction<T>, ec?: ExecutionContextI) {
+  const log = new LoggerAdapter(ec, 're-common', 'cli-common', 'cliIterations');
+  log.info('Input Data:');
+  log.info(cliData);
+  log.info('Iterating');
+  log.info(breakLine);
+  cliData.iterations.forEach(iteration => {
+    if(iteration.description) {
+      log.info(`Description: ${iteration.description}`)
+    }
+    cliFunction(iteration.t, ec);
+  })
+
+  /*
+  Now going with obj, not text from file
+
   log.info(`text to parse:`);
   text = text.replaceAll('\r\n', '\r\n   ');
   log.info(text);
@@ -106,6 +148,8 @@ export function cliFileIterations(text: string, cliFunction: CliFunction, ec?: E
     log.info('-');
     cliFunction(iteration, ec);
   }
+   */
+
 }
 
 export function logParserMessages(parserMessages: ParserMessages, ec?: ExecutionContextI) {
