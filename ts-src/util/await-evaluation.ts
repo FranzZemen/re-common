@@ -1,4 +1,3 @@
-
 /**
  * Defines a function type that returns a Promise of any or any itself.
  *
@@ -9,4 +8,6 @@
  *
  * @return If the implementation is asynchronous as Promise<any> should be returned, otherwise just the return value
  */
+import {LogExecutionContext} from '@franzzemen/logger-adapter';
+
 export type AwaitEvaluation = (dataDomain: any, scope: Map<string, any>, ec?: LogExecutionContext, ...params) => Promise<any> | any;
