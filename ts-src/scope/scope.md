@@ -1,7 +1,7 @@
 # Scope
 
 This section is most relevant to re framework contributors.  Framework users will interact with scopes mostly 
-unknowingly by providing configuration options, custom rule constructs and so on.
+unknowingly by providing configuration _options, custom rule constructs and so on.
 
 The re framework allows for various definitions to be performed at different hierarchical levels, that can be overriden
 in other levels. This necessitates a concept the framework terms _scope_, which is similar to saying "in what scope are
@@ -47,7 +47,7 @@ Moreover, some rule constructs usages are not hiearchical, but still follow the 
 parent/children concepts.
 
 ## Scope Initialization
-Scope initialization can be default, or optioned (driven by an options object).
+Scope initialization can be default, or optioned (driven by an _options object).
 
 ## Scope Manipulation
 TBD

@@ -22,20 +22,26 @@ export class Scope extends Map<string, any> {
   public static ChildScopes = 'ChildScopes';
   public static ScopeName = 'ScopeName';
 
-  public options: CommonOptions;
+  protected _options: ReCommon;
   public scopeName: string;
   public throwOnAsync = false;
   protected moduleResolver = new ModuleResolver();
   private unsatisfiedRuleElementReferences: [refName: string, factoryName: string][] = [];
 
+
+
   constructor(reOptions?: ReCommon, parentScope?: Scope, ec?: LogExecutionContext) {
     super();
-    this.options = reOptions?.common ? reOptions.common : {};
-    this.scopeName = this.options.name ? this.options.name : this.constructor.name + '-' + v4();
+    this._options = reOptions ? reOptions : {};
+    this.scopeName = this.options.common?.name ? this.options.common.name : this.constructor.name + '-' + v4();
     this.addParent(parentScope, ec);
-    if (this.options.throwOnAsync !== undefined) {
-      this.throwOnAsync = this.options.throwOnAsync;
+    if (this.options.common?.throwOnAsync !== undefined) {
+      this.throwOnAsync = this.options.common.throwOnAsync;
     }
+  }
+
+  get options(): ReCommon {
+    return this._options;
   }
 
   /**

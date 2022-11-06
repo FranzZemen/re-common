@@ -1,6 +1,6 @@
 {
   "name": "@franzzemen/re-common",
-  "version": "10.4.2",
+  "version": "10.4.3",
   "description": "Common re elements",
   "type": "module",
   "main": "index.js",
@@ -33,7 +33,7 @@
     "@franzzemen/app-execution-context": "^2.1.1",
     "@franzzemen/enhanced-error": "^1.2.0",
     "@franzzemen/execution-context": "^2.0.4",
-    "@franzzemen/hints": "^1.1.1",
+    "@franzzemen/hints": "^1.1.2",
     "@franzzemen/logger-adapter": "^4.3.0",
     "@franzzemen/module-factory": "^1.0.5",
     "@franzzemen/module-resolver": "^1.1.0",
