@@ -13,7 +13,7 @@ import {v4} from 'uuid';
 import {RuleElementFactory} from '../rule-element-ref/rule-element-factory.js';
 import {RuleElementReference} from '../rule-element-ref/rule-element-reference.js';
 import {HasRefName} from '../util/has-ref-name.js';
-import {CommonOptions, ReCommon} from './common-execution-context.js';
+import {ReCommon} from './common-execution-context.js';
 import {ScopedFactory} from './scoped-factory.js';
 
 

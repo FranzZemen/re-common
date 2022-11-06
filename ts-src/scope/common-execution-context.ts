@@ -50,15 +50,15 @@ export const commonOptionsSchemaWrapper = {
   props: commonOptionsSchema
 }
 
-const commonSchema = {
+export const reCommonSchema = {
   common: commonOptionsSchemaWrapper
 }
 
-export const commonSchemaWrapper = {
+export const reCommonSchemaWrapper = {
   type: 'object',
   optional: true,
   default: CommonExecutionContextDefaults.ReCommon,
-  props: commonSchema
+  props: reCommonSchema
 }
 
 
@@ -66,7 +66,7 @@ export const commonExecutionContextSchema = {
   execution: executionSchemaWrapper,
   app: appSchemaWrapper,
   log: logSchemaWrapper,
-  re: commonSchemaWrapper
+  re: reCommonSchemaWrapper
 }
 
 export const commonExecutionContextSchemaWrapper = {
