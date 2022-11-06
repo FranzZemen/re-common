@@ -23,15 +23,15 @@ export interface CommonExecutionContext extends LogExecutionContext {
 
 export class CommonExecutionContextDefaults {
   static ThrowOnAsync = false;
-  static ReCommonOptions = {
+  static CommonOptions: CommonOptions = {
     throwOnAsync: CommonExecutionContextDefaults.ThrowOnAsync
   }
 
-  static ReOptions = {
-    common: CommonExecutionContextDefaults.ReCommonOptions
+  static Common: Common = {
+    common: CommonExecutionContextDefaults.CommonOptions
   }
-  static ReCommonExecutionContext = {
-    re: CommonExecutionContextDefaults.ReOptions
+  static CommonExecutionContext = {
+    re: CommonExecutionContextDefaults.Common
   }
 }
 
@@ -43,7 +43,7 @@ export const commonOptionsSchema = {
 export const commonOptionsSchemaWrapper = {
   type: 'object',
   optional: true,
-  default: CommonExecutionContextDefaults.ReCommonOptions,
+  default: CommonExecutionContextDefaults.CommonOptions,
   props: commonOptionsSchema
 }
 
@@ -54,7 +54,7 @@ const commonSchema = {
 export const commonSchemaWrapper = {
   type: 'object',
   optional: true,
-  default: CommonExecutionContextDefaults.ReOptions,
+  default: CommonExecutionContextDefaults.Common,
   props: commonSchema
 }
 
@@ -69,7 +69,7 @@ export const commonExecutionContextSchema = {
 export const commonExecutionContextSchemaWrapper = {
   type: 'object',
   optional: true,
-  default: CommonExecutionContextDefaults.ReCommonExecutionContext,
+  default: CommonExecutionContextDefaults.CommonExecutionContext,
   props: commonExecutionContextSchema
 }
 
