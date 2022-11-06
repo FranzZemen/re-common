@@ -1,11 +1,10 @@
 import {
-  ExecutionContextI,
   Hints,
-  isConstrainedModuleDefinition, LoadSchema,
+  isConstrainedModuleDefinition, LoadSchema, logErrorAndThrow,
+  LogExecutionContext,
   LoggerAdapter,
   ModuleDefinition, ModuleResolution
-} from '@franzzemen/app-utility';
-import {logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
+} from '@franzzemen/hints';
 import {HintKey} from './hint-key.js';
 
 /**
@@ -46,7 +45,7 @@ import {HintKey} from './hint-key.js';
  */
 export function loadModuleDefinitionFromHints(
   hints: Hints,
-  ec?: ExecutionContextI,
+  ec?: LogExecutionContext,
   moduleKey = HintKey.Module,
   moduleNameKey = HintKey.ModuleName,
   moduleFunctionNameKey = HintKey.FunctionName,
@@ -72,7 +71,7 @@ export function loadModuleDefinitionFromHints(
           }
         } catch (err) {
           log.warn(json, `Expected JSON for ${HintKey.Module} hint`);
-          logErrorAndThrow(err, log, ec);
+          logErrorAndThrow(err, log);
         }
       }
     }
@@ -84,7 +83,7 @@ export function loadModuleDefinitionFromHints(
       const constructorName = hints.get(moduleConstructorNameKey) as string;
       if (functionName && constructorName) {
         const err = new Error(`Both function name ${functionName} and constructor name ${constructorName} provided, only one should be`);
-        logErrorAndThrow(err, log, ec);
+        logErrorAndThrow(err, log);
       }
       const moduleResolution = hints.get(moduleResolutionKey) as ModuleResolution;
       const loadSchema = hints.get(loadSchemaKey) as LoadSchema;

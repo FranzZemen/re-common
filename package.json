@@ -1,6 +1,6 @@
 {
   "name": "@franzzemen/re-common",
-  "version": "10.2.5",
+  "version": "10.3.0",
   "description": "Common re elements",
   "type": "module",
   "main": "index.js",
@@ -18,13 +18,10 @@
   },
   "homepage": "https://github.com/FranzZemen/re-common#readme",
   "devDependencies": {
-    "@franzzemen/gulp-base": "^12.0.4",
-    "@franzzemen/npmu": "^2.0.16",
-    "@franzzemen/safe-config": "^2.0.45",
+    "@franzzemen/gulp-base": "^12.1.1",
+    "@franzzemen/npmu": "^2.0.18",
     "@types/chai": "^4.3.3",
     "@types/mocha": "^10.0.0",
-    "@types/object-path": "^0.11.1",
-    "@types/uuid": "^8.3.4",
     "chai": "^4.3.6",
     "gulp": "^4.0.2",
     "gulp-mocha": "^8.0.0",
@@ -32,10 +29,6 @@
     "typescript": "^4.8.4"
   },
   "dependencies": {
-    "@franzzemen/app-utility": "5.1.17",
-    "fastest-validator": "^1.15.0",
-    "moment": "^2.29.4",
-    "object-path": "^0.11.8",
-    "uuid": "^9.0.0"
+    "@franzzemen/hints": "^1.0.2"
   }
 }

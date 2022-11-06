@@ -1,4 +1,4 @@
-import {ExecutionContextI, ModuleResolution, ModuleResolver} from '@franzzemen/app-utility';
+import {LogExecutionContext, ModuleResolution} from '@franzzemen/hints';
 import chai from 'chai';
 import Validator from 'fastest-validator';
 import 'mocha';
@@ -16,7 +16,7 @@ describe('re-commont tests', () => {
       // Test class to test aba\stract base class functionality
       class TestInferenceStackParser extends InferenceStackParser<TestParser> {
         // We're not actually testing parsing so leave as is.
-        parse(remaining: string, scope: Map<string, any>, inferredContext: any, execContext: ExecutionContextI | undefined): [string, any] {
+        parse(remaining: string, scope: Map<string, any>, inferredContext: any, execContext: LogExecutionContext | undefined): [string, any] {
           return ['', undefined];
         }
 

@@ -1,20 +1,6 @@
-import {
-  CheckFunction,
-  ExecutionContextI,
-  loadFromModule,
-  LoadSchema,
-  LoggerAdapter,
-  ModuleResolution, ModuleResolutionResult, ModuleResolutionSetter, TypeOf
-} from '@franzzemen/app-utility';
-import {EnhancedError, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
-import {isPromise} from 'node:util/types';
+import {EnhancedError, logErrorAndThrow, LogExecutionContext, LoggerAdapter} from '@franzzemen/hints';
 import {ScopedFactory} from '../scope/scoped-factory.js';
-import {
-  isRuleElementModuleReference,
-  RuleElementInstanceReference,
-  RuleElementModuleReference,
-  RuleElementReference
-} from './rule-element-reference.js';
+import {RuleElementReference} from './rule-element-reference.js';
 
 export abstract class RuleElementFactory<C> implements ScopedFactory<C> {
   protected repo = new Map<string, RuleElementReference<C>>();
@@ -22,15 +8,15 @@ export abstract class RuleElementFactory<C> implements ScopedFactory<C> {
   constructor() {
   }
 
-  register(ruleElementRef: RuleElementReference<C>,  ec?: ExecutionContextI): C {
+  register(ruleElementRef: RuleElementReference<C>,  ec?: LogExecutionContext): C {
     const log = new LoggerAdapter(ec, 'rules-engine', 'rule-element-ref-ref-factory', 'register');
     if (ruleElementRef.instanceRef === undefined) {
       log.warn(ruleElementRef, 'register requires an instance');
-      logErrorAndThrow(new EnhancedError('register requires an instance'), log, ec);
+      logErrorAndThrow(new EnhancedError('register requires an instance'), log);
     }
     const refName = ruleElementRef.instanceRef.refName;
     if (!refName) {
-      logErrorAndThrow(new EnhancedError('No reference name'), log, ec);
+      logErrorAndThrow(new EnhancedError('No reference name'), log);
     }
     if(this.hasRegistered(refName)) {
       log.warn(ruleElementRef, `Not overriding element with same name ${refName}`)
@@ -40,7 +26,7 @@ export abstract class RuleElementFactory<C> implements ScopedFactory<C> {
     return ruleElementRef.instanceRef.instance;
   }
 
-  unregister(refName: string, execContext?: ExecutionContextI): boolean {
+  unregister(refName: string, execContext?: LogExecutionContext): boolean {
     if (!this.repo.delete(refName)) {
       const log = new LoggerAdapter(execContext, 'rules-engine', 'rule-element-ref-ref-factory', 'unregister');
       log.warn(`No reference with refName ${refName} to unregister`);
@@ -49,7 +35,7 @@ export abstract class RuleElementFactory<C> implements ScopedFactory<C> {
     return true;
   }
 
-  getRegistered(refName: string, execContext?: ExecutionContextI): C {
+  getRegistered(refName: string, execContext?: LogExecutionContext): C {
     const ruleElement: RuleElementReference<C> = this.repo.get(refName);
     if (ruleElement) {
       return ruleElement.instanceRef.instance;
@@ -60,7 +46,7 @@ export abstract class RuleElementFactory<C> implements ScopedFactory<C> {
     }
   }
 
-  hasRegistered(refName: string, execContext?: ExecutionContextI): boolean {
+  hasRegistered(refName: string, execContext?: LogExecutionContext): boolean {
     return this.repo.has(refName);
   }
 

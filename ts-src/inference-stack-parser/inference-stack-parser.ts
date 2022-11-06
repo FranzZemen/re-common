@@ -1,15 +1,11 @@
 import {
-  CheckFunction,
-  ExecutionContextI,
-  loadFromModule,
-  LoadPackageType,
-  LoggerAdapter, ModuleResolutionResult,
-  ModuleResolutionSetter,
-  ModuleResolver,
-  TypeOf
-} from '@franzzemen/app-utility';
-import {EnhancedError, logErrorAndReturn, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
-import {ModuleResolutionSetterInvocation} from '@franzzemen/app-utility/module-resolver.js';
+  EnhancedError,
+  LoadPackageType, logErrorAndReturn,
+  logErrorAndThrow,
+  LogExecutionContext, LoggerAdapter,
+  ModuleResolutionResult,
+  ModuleResolutionSetterInvocation, ModuleResolver
+} from '@franzzemen/hints';
 import {isPromise} from 'node:util/types';
 import {
   isRuleElementInstanceReference,
@@ -47,9 +43,9 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * @param ec
    C* @return The remaining text, the result or a promise to it, and arbitrary other object, if needed.
    */
-  abstract parse(remaining: string, scope: Map<string, any>, inferredContext?: any, ec?: ExecutionContextI): [string, any | Promise<any>, any?];
+  abstract parse(remaining: string, scope: Map<string, any>, inferredContext?: any, ec?: LogExecutionContext): [string, any | Promise<any>, any?];
 
-  resolveAddParser: ModuleResolutionSetterInvocation = (refName: string, parser: InferenceParser, resolutionResult?: ModuleResolutionResult, ec?: ExecutionContextI) => {
+  resolveAddParser: ModuleResolutionSetterInvocation = (refName: string, parser: InferenceParser, resolutionResult?: ModuleResolutionResult, ec?: LogExecutionContext) => {
     const inferenceParser = this.parserMap.get(refName)?.instanceRef?.instance;
     this.parserMap.set(refName, {instanceRef: {instance:parser, refName: refName}});
     if(!inferenceParser) {
@@ -58,7 +54,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     return true;
   }
 
-  resolveAddParserAtStackIndex: ModuleResolutionSetterInvocation = (refName: string, parser: InferenceParser, resolutionResult: ModuleResolutionResult, ndx: number, ec?: ExecutionContextI) => {
+  resolveAddParserAtStackIndex: ModuleResolutionSetterInvocation = (refName: string, parser: InferenceParser, resolutionResult: ModuleResolutionResult, ndx: number, ec?: LogExecutionContext) => {
     const ruleElementRef: RuleElementReference<InferenceParser> = {
       instanceRef: {
         refName: refName,
@@ -73,7 +69,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
       this._addParserAtStackIndexBody(parser, ndx, ruleElementRef, ec);
       return true;
     } catch (err) {
-      logErrorAndThrow(err, new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'resoloveAddParserAtStackIndex'), ec);
+      logErrorAndThrow(err, new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'resoloveAddParserAtStackIndex'));
     }
   }
 
@@ -92,7 +88,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * module, since ES modules can only be loaded dynamically through the asynchronous import().  Commonjs targets do not produce
    * asynchronous loads.
    */
-  addParser(stackedParser: InferenceParser | RuleElementModuleReference, override = false, ec?: ExecutionContextI): InferenceParser | Promise<InferenceParser> {
+  addParser(stackedParser: InferenceParser | RuleElementModuleReference, override = false, ec?: LogExecutionContext): InferenceParser | Promise<InferenceParser> {
     const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parse', 'addParser');
     const inferenceParser = this.parserMap.get(stackedParser.refName)?.instanceRef?.instance;
     if (inferenceParser && !override) {
@@ -135,12 +131,12 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
               const someErrors = ModuleResolver.resolutionsHaveErrors(resolutions);
               if(someErrors) {
                 log.warn(resolutions, 'Errors resolving modules');
-                logErrorAndThrow(new EnhancedError('Errors resolving modules'), log, ec);
+                logErrorAndThrow(new EnhancedError('Errors resolving modules'), log);
               } else {
                 const addedParser = this.parserMap.get(stackedParser.refName)?.instanceRef?.instance;
                 if(!addedParser) {
                   log.warn(resolutionsOrPromises, 'ModuleReference not added');
-                  logErrorAndThrow(new EnhancedError('ModuleReference not added'), log, ec);
+                  logErrorAndThrow(new EnhancedError('ModuleReference not added'), log);
                 } else {
                   return addedParser;
                 }
@@ -150,12 +146,12 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
           const someErrors = ModuleResolver.resolutionsHaveErrors(resolutionsOrPromises);
           if(someErrors) {
             log.warn(resolutionsOrPromises, 'Errors resolving modules');
-            logErrorAndThrow(new EnhancedError('Errors resolving modules'), log, ec);
+            logErrorAndThrow(new EnhancedError('Errors resolving modules'), log);
           } else {
             const addedParser = this.parserMap.get(stackedParser.refName)?.instanceRef?.instance;
             if(!addedParser) {
               log.warn(resolutionsOrPromises, 'ModuleReference not added');
-              logErrorAndThrow(new EnhancedError('ModuleReference not added'), log, ec);
+              logErrorAndThrow(new EnhancedError('ModuleReference not added'), log);
             } else {
               return addedParser;
             }
@@ -173,7 +169,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     }
   }
 
-  hasParser(refName: string, execContext?: ExecutionContextI): boolean {
+  hasParser(refName: string, execContext?: LogExecutionContext): boolean {
     if (refName) {
       return this.parserMap.has(refName);
     } else {
@@ -181,7 +177,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     }
   }
 
-  getParser(refName: string, ec?: ExecutionContextI): InferenceParser {
+  getParser(refName: string, ec?: LogExecutionContext): InferenceParser {
     return this.parserMap.get(refName).instanceRef.instance;
   }
 
@@ -197,7 +193,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * module, since ES modules can only be loaded dynamically through the asynchronous import().  Commonjs targets do not produce
    * asynchronous loads.
    */
-  addParserAtStackIndex(stackedParser: InferenceParser | RuleElementModuleReference, stackIndex: number, ec?: ExecutionContextI): boolean | Promise<boolean> {
+  addParserAtStackIndex(stackedParser: InferenceParser | RuleElementModuleReference, stackIndex: number, ec?: LogExecutionContext): boolean | Promise<boolean> {
     const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'addStackedParserAtStackIndex');
     if (this.hasParser(stackedParser.refName)) {
       // Rarely if'ed.  Create log here.
@@ -225,18 +221,18 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
             const someErrors = ModuleResolver.resolutionsHaveErrors(resolutions);
             if(someErrors) {
               log.warn(resolutionsOrPromises, 'Errors loading');
-              logErrorAndThrow(new EnhancedError('Errors loading'), log, ec);
+              logErrorAndThrow(new EnhancedError('Errors loading'), log);
             } else {
               return true;
             }
           }, err => {
-            throw logErrorAndReturn(err, log, ec);
+            throw logErrorAndReturn(err, log);
           });
       } else {
         const someErrors = ModuleResolver.resolutionsHaveErrors(resolutionsOrPromises);
         if(someErrors) {
           log.warn(resolutionsOrPromises, 'Errors loading');
-          logErrorAndThrow(new EnhancedError('Errors loading'), log, ec);
+          logErrorAndThrow(new EnhancedError('Errors loading'), log);
         } else {
           return true;
         }
@@ -257,7 +253,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * @param ec
    * @return true if the parser existed
    */
-  removeParser(refName: string, ec?: ExecutionContextI): boolean {
+  removeParser(refName: string, ec?: LogExecutionContext): boolean {
     const found = this.parserMap.delete(refName);
     if (found) {
       const ndx = this.parserInferenceStack.indexOf(refName);
@@ -273,7 +269,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * Get a copy of the inference stack
    * @param execContext
    */
-  getInferenceStack(execContext?: ExecutionContextI): string[] {
+  getInferenceStack(execContext?: LogExecutionContext): string[] {
     const inferenceStack: string[] = [];
     this.parserInferenceStack.forEach(inference => inferenceStack.push(inference));
     return inferenceStack;
@@ -283,9 +279,9 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
    * Sets the new inference stack.  Every entry of the new inference stack must exist and everything that exists
    * must exist in the inbound inferenceStack.  The inference stack is copied into a new array
    * @param inferenceStack
-   * @param execContext
+   * @param ec
    */
-  orderInferenceStack(inferenceStack: string[], ec?: ExecutionContextI) {
+  orderInferenceStack(inferenceStack: string[], ec?: LogExecutionContext) {
     // All the inference refs must be already loaded.
     if (inferenceStack.every(newInference => {
       if (!this.parserMap.has(newInference)) {
@@ -302,31 +298,31 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
       const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parser', 'setInferenceStack');
       log.warn({inferenceStack, existingStack: this.parserInferenceStack}, 'Mismatch in stack contents');
       const err = new Error(`Mismatch in stack contents`);
-      logErrorAndThrow(err, log, ec);
+      logErrorAndThrow(err, log);
     }
   }
 
-  register(reference: InferenceParser | RuleElementModuleReference | RuleElementInstanceReference<InferenceParser>, override, ec?: ExecutionContextI): InferenceParser | Promise<InferenceParser> {
+  register(reference: InferenceParser | RuleElementModuleReference | RuleElementInstanceReference<InferenceParser>, override, ec?: LogExecutionContext): InferenceParser | Promise<InferenceParser> {
     if (!isRuleElementInstanceReference(reference)) {
       return this.addParser(reference, false, ec);
     } else {
-      logErrorAndThrow(new Error('Not applicable'), undefined, ec);
+      logErrorAndThrow(new Error('Not applicable'), ec);
     }
   }
 
-  unregister(refName: string, execContext?: ExecutionContextI): boolean {
+  unregister(refName: string, execContext?: LogExecutionContext): boolean {
     return this.removeParser(refName, execContext);
   }
 
-  hasRegistered(refName: string, execContext?: ExecutionContextI): boolean {
+  hasRegistered(refName: string, execContext?: LogExecutionContext): boolean {
     return this.hasParser(refName, execContext);
   }
 
-  getRegistered(refName: string, ec?: ExecutionContextI): InferenceParser {
+  getRegistered(refName: string, ec?: LogExecutionContext): InferenceParser {
     return this.getParser(refName, ec);
   }
 
-  private _addParserAtStackIndexBody(stackedParser: InferenceParser | RuleElementModuleReference, stackIndex: number, ruleElement: RuleElementReference<InferenceParser>, ec?: ExecutionContextI): boolean {
+  private _addParserAtStackIndexBody(stackedParser: InferenceParser | RuleElementModuleReference, stackIndex: number, ruleElement: RuleElementReference<InferenceParser>, ec?: LogExecutionContext): boolean {
     if (stackIndex >= 0 && stackIndex <= this.parserInferenceStack.length) {
       this.parserMap.set(stackedParser.refName, ruleElement);
       if (stackIndex === this.parserInferenceStack.length) {
@@ -338,7 +334,7 @@ export abstract class InferenceStackParser<InferenceParser extends HasRefName> i
     } else {
       const log = new LoggerAdapter(ec, 're-common', 'inference-stack-parser', '_addParserAtStackIndexBody');
       const err = new Error(`Attempt to add stacked parser ${stackedParser.refName} at position ${stackIndex} outside of stack size`);
-      logErrorAndThrow(err, log, ec);
+      logErrorAndThrow(err, log);
     }
   }
 }

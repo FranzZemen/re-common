@@ -1,9 +1,4 @@
-import {
-  CheckFunction,
-  ModuleResolution,
-  ModuleResolutionAction,
-  ModuleResolutionActionInvocation
-} from '@franzzemen/app-utility';
+import {ModuleResolution, ModuleResolutionAction, ModuleResolutionActionInvocation} from '@franzzemen/hints';
 import chai from 'chai';
 import 'mocha';
 import Validator from 'fastest-validator';

@@ -17,11 +17,21 @@ export const npmu  = (cb) => {
     {
       path: join(__dirname, '../gulp-base'), packageName: '@franzzemen/gulp-base',
     }, {
-      path: join(__dirname, '../safe-config'), packageName: '@franzzemen/safe-config',
-    }, {
       path: join(__dirname, '../npmu'), packageName: '@franzzemen/npmu',
     }, {
-      path: join(__dirname, '../app-utility'), packageName: '@franzzemen/app-utility',
+      path: join(__dirname, '../module-factory'), packageName: '@franzzemen/module-factory',
+    }, {
+      path: join(__dirname, '../execution-context'), packageName: '@franzzemen/execution-context',
+    }, {
+      path: join(__dirname, '../app-execution-context'), packageName: '@franzzemen/app-execution-context',
+    }, {
+      path: join(__dirname, '../logger-adapter'), packageName: '@franzzemen/logger-adapter',
+    }, {
+      path: join(__dirname, '../enhanced-error'), packageName: '@franzzemen/enhanced-error',
+    }, {
+      path: join(__dirname, '../module-resolver'), packageName: '@franzzemen/module-resolver',
+    }, {
+      path: join(__dirname, '../hints'), packageName: '@franzzemen/hints',
     }, {
       path: join(__dirname, './'), packageName: '@franzzemen/re-common',
     }])

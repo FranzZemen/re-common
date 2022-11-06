@@ -1,4 +1,4 @@
-import {ExecutionContextI} from '@franzzemen/app-utility';
+import {ExecutionContext} from '@franzzemen/hints';
 import chai from 'chai';
 import 'mocha';
 import {isPromise} from 'node:util/types';
@@ -34,7 +34,7 @@ class TestFragmentParser extends FragmentParser<TestReference> {
     super();
   }
 
-  parse(Fragment: string, scope:Scope, ec?: ExecutionContextI): [string, TestReference, ParserMessages] {
+  parse(Fragment: string, scope:Scope, ec?: ExecutionContext): [string, TestReference, ParserMessages] {
     const result = /^(HelloWorld)\s*([^]*)$/.exec(Fragment);
     const ref: TestReference = {value: undefined};
     if (result) {

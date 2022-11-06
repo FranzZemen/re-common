@@ -1,8 +1,9 @@
-import {_mergeModuleDefinition, ModuleDefinition} from '@franzzemen/app-utility';
-
 /**
  * Refers to the definition of rule element from a module specification
  */
+import _ from 'lodash';
+import {ModuleDefinition} from '@franzzemen/hints';
+
 export interface RuleElementModuleReference {
   refName: string;
   module: ModuleDefinition;
@@ -26,9 +27,10 @@ export function _mergeRuleElementModuleReference(target?: RuleElementModuleRefer
   if(!target && !source) {
     return undefined;
   }
-  const _target: Partial<RuleElementModuleReference> = mergeInto ? target ? target : {} : {};
-  _target.refName = source?.refName ? source.refName : target?.refName;
-  _target.module = _mergeModuleDefinition(target?.module, source?.module, mergeInto);
+  const _target = _.merge(mergeInto ? target? target: {} : {}, source);
+  // const _target: Partial<RuleElementModuleReference> = mergeInto ? target ? target : {} : {};
+  // _target.refName = source?.refName ? source.refName : target?.refName;
+  // _target.module = _mergeModuleDefinition(target?.module, source?.module, mergeInto);
   return _target as RuleElementModuleReference;
 }
 
@@ -52,9 +54,10 @@ export function _mergeRuleElementReference<C>(target?: RuleElementReference<C>, 
   if(!target && !source) {
     return undefined;
   }
-  const _target: Partial<RuleElementReference<C>> = mergeInto ? target ? target : {} : {};
-  _target.moduleRef = _mergeRuleElementModuleReference(target?.moduleRef, source?.moduleRef, mergeInto);
-  _target.instanceRef = _mergeRuleElementInstanceReference<C>(target?.instanceRef, source?.instanceRef, mergeInto);
+  const _target = _.merge(mergeInto ? target ? target : {} : {}, source);
+  //const _target: Partial<RuleElementReference<C>> = mergeInto ? target ? target : {} : {};
+  //_target.moduleRef = _mergeRuleElementModuleReference(target?.moduleRef, source?.moduleRef, mergeInto);
+  //_target.instanceRef = _mergeRuleElementInstanceReference<C>(target?.instanceRef, source?.instanceRef, mergeInto);
   return _target as RuleElementReference<C>;
 }
 

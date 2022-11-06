@@ -1,4 +1,5 @@
-import {ExecutionContextI, isEnumeratedType, reverseEnumerationToSet} from '@franzzemen/app-utility';
+import {LogExecutionContext} from '@franzzemen/hints';
+import {isEnumeratedType, reverseEnumerationToSet} from '../util/enum-util.js';
 
 export enum StandardOperator {
   Plus = '+',
@@ -25,12 +26,12 @@ export interface OperatorI {
   lhsMultiVariate?: boolean;
   rhsMultiVariate?: boolean;
   twoSidedMultiVariate?: boolean;
-  operate(lhs:any , rhs:any, ec?: ExecutionContextI): any;
+  operate(lhs:any , rhs:any, ec?: LogExecutionContext): any;
 }
 
 export abstract class Operator implements OperatorI {
   constructor(public refName: string, public lhsMultiVariate = false, public rhsMultivariate = false, twoSidedMultivariate = false) {
   }
 
-  abstract operate(lhs:any , rhs:any, ec?: ExecutionContextI): any;
+  abstract operate(lhs:any , rhs:any, ec?: LogExecutionContext): any;
 }

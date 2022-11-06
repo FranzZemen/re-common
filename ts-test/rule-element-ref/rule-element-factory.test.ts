@@ -1,8 +1,8 @@
-import {ModuleResolution} from '@franzzemen/app-utility';
+import {ModuleResolution} from '@franzzemen/hints';
 import chai from 'chai';
 import 'mocha';
 import {isPromise} from 'node:util/types';
-import {RuleElementFactory, RuleElementModuleReference, RuleElementReference} from '../../publish/index.js';
+import {RuleElementReference} from '../../publish/index.js';
 
 import {RuleElementImpl, RulesObjectImplFactory, RulesObjectImplI} from './rule-element-impl.js';
 
@@ -13,8 +13,6 @@ let expect = chai.expect;
 
 describe('re-common tests', () => {
   describe('Rule Element Factory Tests', () => {
-
-
     const factory = new RulesObjectImplFactory();
     const ref: RuleElementReference<RuleElementImpl> = {
       moduleRef: {
@@ -32,7 +30,7 @@ describe('re-common tests', () => {
       }
     };
 
-    const instance: RulesObjectImplI = factory.register(ref,  {config: {log: {level: 'debug'}}});
+    const instance: RulesObjectImplI = factory.register(ref,  {log: {options:{level: 'debug'}}});
     it('should register an instance using a constructor name and one parameter', () => {
       expect(instance).to.exist;
       if (isPromise(instance)) {

@@ -1,8 +1,8 @@
-import {escapeRegex, ExecutionContextI, LoggerAdapter, ModuleResolver} from '@franzzemen/app-utility';
-import {EnhancedError, logErrorAndThrow} from '@franzzemen/app-utility/enhanced-error.js';
+import {EnhancedError, logErrorAndThrow, LogExecutionContext, LoggerAdapter} from '@franzzemen/hints';
 import {isPromise} from 'node:util/types';
 import {ParserMessages} from '../../parser-messages/parser-messages.js';
 import {Scope} from '../../scope/scope.js';
+import {escapeRegex} from '../../util/escape-regex.js';
 import {Fragment, RecursiveGrouping} from '../recursive-grouping.js';
 import {FragmentParser} from './fragment-parser.js';
 
@@ -33,7 +33,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
                    defaultOperator: OperatorType,
                    endConditionTests: RegExp[],
                    groupOperator?: OperatorType,
-                   ec?: ExecutionContextI): ResolvedRecursiveGroupingParseResult<OperatorType, Reference> {
+                   ec?: LogExecutionContext): ResolvedRecursiveGroupingParseResult<OperatorType, Reference> {
 
 
     const log = new LoggerAdapter(ec, 're-common', 'recursive-grouping-parser', 'parseAndResolve');
@@ -54,7 +54,6 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
 
   /**
    *
-   * @param moduleResolver
    * @param text
    * @param scope
    * @param operators
@@ -75,7 +74,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
         defaultOperator: OperatorType,
         endConditionTests: RegExp[],
         groupOperator?: OperatorType,
-        ec?: ExecutionContextI): RecursiveGroupingParseResult<OperatorType, Reference> {
+        ec?: LogExecutionContext): RecursiveGroupingParseResult<OperatorType, Reference> {
 
     const log = new LoggerAdapter(ec, 're-common', 'recursive-grouping-parser', 'parse');
     let operator = groupOperator;
@@ -109,7 +108,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
         if (subGroup) {
           thisGroup.group.push(subGroup);
         } else {
-          logErrorAndThrow(new EnhancedError('Unexpected undefined processing sub-group'), log, ec);
+          logErrorAndThrow(new EnhancedError('Unexpected undefined processing sub-group'), log);
         }
         // We continue until we find an end to all the grouping, or end of input.  End of sub group just means wthat we move
         // to the next sub group or fragment in this group.
@@ -123,7 +122,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
           const fragment: Fragment<OperatorType, Reference> = {operator: subGroupOperator, reference};
           thisGroup.group.push(fragment);
         } else {
-          logErrorAndThrow(new EnhancedError('Unexpected undefined processing fragment'), log, ec);
+          logErrorAndThrow(new EnhancedError('Unexpected undefined processing fragment'), log);
         }
 
         // Check end condition
@@ -150,7 +149,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
    * @return CurrentGroupingEnd means we encountered a closing bracket, GroupingEnd means we encountered a tested end
    * condition, and InputEnd means we're at the end of the text
    */
-  testEndCondition(text: string, endConditions: RegExp[], ec?: ExecutionContextI): [string, EndConditionType] {
+  testEndCondition(text: string, endConditions: RegExp[], ec?: LogExecutionContext): [string, EndConditionType] {
     text = text.trim();
     if (text.length === 0) {
       return [text, EndConditionType.InputEnd];
@@ -175,7 +174,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
    * @return the remaining text after removing the operator and trailing white space as well as the operator OR
    * the original text and undefined if it does nto find an operator
    */
-  parseOperator(text, _operators: OperatorType[], addDefault: boolean, _defaultOperator: OperatorType, ec?: ExecutionContextI): [string, OperatorType, ParserMessages] {
+  parseOperator(text, _operators: OperatorType[], addDefault: boolean, _defaultOperator: OperatorType, ec?: LogExecutionContext): [string, OperatorType, ParserMessages] {
     const log = new LoggerAdapter(ec, 'rules-engine', 'recursive-grouping-parser', RecursiveGroupingParser.name + 'parseOperator');
 
     const operators: string[]= [];
@@ -200,7 +199,7 @@ export class RecursiveGroupingParser<OperatorType, Reference> {
       return [text, _defaultOperator, undefined];
     } else {
       const err = new Error(`Expected operator near ${text}`);
-      logErrorAndThrow(err, log, ec);
+      logErrorAndThrow(err, log);
     }
   }
 }
