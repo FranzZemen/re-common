@@ -1,4 +1,4 @@
-import {ExecutionContext} from '@franzzemen/hints';
+import {ExecutionContext} from '@franzzemen/execution-context';
 import chai from 'chai';
 import 'mocha';
 import {isPromise} from 'node:util/types';

@@ -1,4 +1,5 @@
-import {logErrorAndThrow, LogExecutionContext, LoggerAdapter} from '@franzzemen/hints';
+import {logErrorAndThrow} from '@franzzemen/enhanced-error';
+import {LogExecutionContext, LoggerAdapter} from '@franzzemen/logger-adapter';
 import {Operator, StandardOperator} from '../operator.js';
 
 export class StandardPlusOperator extends Operator {

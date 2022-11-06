@@ -1,4 +1,5 @@
-import {EnhancedError, logErrorAndThrow, LogExecutionContext, LoggerAdapter} from '@franzzemen/hints';
+import {EnhancedError, logErrorAndThrow} from '@franzzemen/enhanced-error';
+import {LogExecutionContext, LoggerAdapter} from '@franzzemen/logger-adapter';
 import {ScopedFactory} from '../scope/scoped-factory.js';
 import {RuleElementReference} from './rule-element-reference.js';
 

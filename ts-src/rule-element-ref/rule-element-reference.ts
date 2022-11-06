@@ -2,7 +2,7 @@
  * Refers to the definition of rule element from a module specification
  */
 import _ from 'lodash';
-import {ModuleDefinition} from '@franzzemen/hints';
+import {ModuleDefinition} from '@franzzemen/module-factory';
 
 export interface RuleElementModuleReference {
   refName: string;

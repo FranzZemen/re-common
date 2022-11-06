@@ -1,18 +1,19 @@
+import {EnhancedError, logErrorAndReturn, logErrorAndThrow} from '@franzzemen/enhanced-error';
+import {Hints} from '@franzzemen/hints';
+import {LogExecutionContext, LoggerAdapter} from '@franzzemen/logger-adapter';
 import {
-  EnhancedError,
-  Hints, LoadPackageType, logErrorAndReturn, logErrorAndThrow,
-  LogExecutionContext,
-  LoggerAdapter,
+  LoadPackageType,
   ModuleResolutionAction,
-  ModuleResolutionResult, ModuleResolutionSetterInvocation,
+  ModuleResolutionResult,
+  ModuleResolutionSetterInvocation,
   ModuleResolver
-} from '@franzzemen/hints';
+} from '@franzzemen/module-resolver';
 import {isPromise} from 'node:util/types';
 import {v4} from 'uuid';
 import {RuleElementFactory} from '../rule-element-ref/rule-element-factory.js';
-import {isRuleElementReference, RuleElementReference} from '../rule-element-ref/rule-element-reference.js';
+import {RuleElementReference} from '../rule-element-ref/rule-element-reference.js';
 import {HasRefName} from '../util/has-ref-name.js';
-import {Options} from './options.js';
+import {ReCommonOptions} from './re-common-execution-context.js';
 import {ScopedFactory} from './scoped-factory.js';
 
 
@@ -21,16 +22,16 @@ export class Scope extends Map<string, any> {
   public static ChildScopes = 'ChildScopes';
   public static ScopeName = 'ScopeName';
 
-  public options: Options;
+  public options: ReCommonOptions;
   public scopeName: string;
   public throwOnAsync = false;
   protected moduleResolver = new ModuleResolver();
   private unsatisfiedRuleElementReferences: [refName: string, factoryName: string][] = [];
 
-  constructor(options?: Options, parentScope?: Scope, ec?: LogExecutionContext) {
+  constructor(options?: ReCommonOptions, parentScope?: Scope, ec?: LogExecutionContext) {
     super();
     this.options = options ? options : {};
-    this.scopeName = options?.name ? options.name : this.constructor.name + '-' + v4();
+    this.scopeName = options?.name ? options?.name : this.constructor.name + '-' + v4();
     this.addParent(parentScope, ec);
     if (options?.throwOnAsync !== undefined) {
       this.throwOnAsync = options.throwOnAsync;

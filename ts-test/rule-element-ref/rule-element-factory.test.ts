@@ -1,4 +1,4 @@
-import {ModuleResolution} from '@franzzemen/hints';
+import {ModuleResolution} from '@franzzemen/module-factory';
 import chai from 'chai';
 import 'mocha';
 import {isPromise} from 'node:util/types';

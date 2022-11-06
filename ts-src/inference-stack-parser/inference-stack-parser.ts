@@ -1,11 +1,11 @@
+import {EnhancedError, logErrorAndReturn, logErrorAndThrow} from '@franzzemen/enhanced-error';
+import {LogExecutionContext, LoggerAdapter} from '@franzzemen/logger-adapter';
 import {
-  EnhancedError,
-  LoadPackageType, logErrorAndReturn,
-  logErrorAndThrow,
-  LogExecutionContext, LoggerAdapter,
+  LoadPackageType,
   ModuleResolutionResult,
-  ModuleResolutionSetterInvocation, ModuleResolver
-} from '@franzzemen/hints';
+  ModuleResolutionSetterInvocation,
+  ModuleResolver
+} from '@franzzemen/module-resolver';
 import {isPromise} from 'node:util/types';
 import {
   isRuleElementInstanceReference,

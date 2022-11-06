@@ -1,4 +1,4 @@
-import {LogExecutionContext} from '@franzzemen/hints';
+import {LogExecutionContext} from '@franzzemen/logger-adapter';
 import {ParserMessages} from '../../parser-messages/parser-messages.js';
 
 export abstract class FragmentParser<Reference> {

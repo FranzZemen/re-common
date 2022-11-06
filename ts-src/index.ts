@@ -1,5 +1,3 @@
-export * from '@franzzemen/hints';
-
 export * from './parser-messages/external-index.js';
 export * from './util/external-index.js';
 export * from './scope/external-index.js';

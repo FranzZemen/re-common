@@ -1,4 +1,4 @@
-import {LogExecutionContext} from '@franzzemen/hints';
+import {LogExecutionContext} from '@franzzemen/logger-adapter';
 import {isEnumeratedType, reverseEnumerationToSet} from '../util/enum-util.js';
 
 export enum StandardOperator {

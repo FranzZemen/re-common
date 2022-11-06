@@ -1,14 +1,15 @@
-import {ModuleResolution, ModuleResolutionAction, ModuleResolutionActionInvocation} from '@franzzemen/hints';
+import {ModuleResolution} from '@franzzemen/module-factory';
+import {ModuleResolutionAction, ModuleResolutionActionInvocation} from '@franzzemen/module-resolver';
 import chai from 'chai';
-import 'mocha';
 import Validator from 'fastest-validator';
+import _ from 'lodash';
+import 'mocha';
 import {isPromise} from 'node:util/types';
 import {
-  _mergeOptions,
-  Options,
+  ReCommonOptions,
   RuleElementFactory,
   RuleElementInstanceReference,
-  RuleElementModuleReference, RuleElementReference,
+  RuleElementModuleReference,
   Scope
 } from '../../publish/index.js';
 import {RuleElementImpl, RulesObjectImplFactory, RulesObjectImplI} from '../rule-element-ref/rule-element-impl.js';
@@ -256,21 +257,19 @@ describe('re-common tests', () => {
         baseScope.getParentAtHeight(2).scopeName.should.equal('parent2');
       });
       it('should merge into', () => {
-        let source: Options = {name: 'Source', throwOnAsync: false};
-        let target: Options = {name: 'Target'};
-        let merged = _mergeOptions(target, source);
+        let source: ReCommonOptions = {name: 'Source', throwOnAsync: false};
+        let target: ReCommonOptions = {name: 'Target'};
+        let merged = _.merge(target, source);
         merged.name.should.equal('Source');
         merged.throwOnAsync.should.exist;
         merged.throwOnAsync.should.be.false;
       });
       it('should merge new', () => {
-        let source: Options = {name: 'Source', throwOnAsync: false};
-        let target: Options = {name: 'Target'};
-        let merged = _mergeOptions(target, source, false);
+        let source: ReCommonOptions = {name: 'Source', throwOnAsync: false};
+        let target: ReCommonOptions = {name: 'Target'};
+        let merged = _.merge(target, source);
         merged.name.should.equal('Source');
-        merged.throwOnAsync.should.exist;
         merged.throwOnAsync.should.be.false;
-        (merged === target).should.be.false;
       });
 
     });

@@ -1,4 +1,5 @@
-import {LogExecutionContext, ModuleResolution} from '@franzzemen/hints';
+import {LogExecutionContext} from '@franzzemen/logger-adapter';
+import {ModuleResolution} from '@franzzemen/module-factory';
 import chai from 'chai';
 import Validator from 'fastest-validator';
 import 'mocha';

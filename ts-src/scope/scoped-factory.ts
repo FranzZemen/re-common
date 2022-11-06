@@ -1,4 +1,4 @@
-import {LogExecutionContext} from '@franzzemen/hints';
+import {LogExecutionContext} from '@franzzemen/logger-adapter';
 import {
   RuleElementInstanceReference,
   RuleElementModuleReference,

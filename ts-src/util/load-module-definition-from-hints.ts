@@ -1,10 +1,12 @@
+import {logErrorAndThrow} from '@franzzemen/enhanced-error';
+import {Hints} from '@franzzemen/hints';
+import {LogExecutionContext, LoggerAdapter} from '@franzzemen/logger-adapter';
 import {
-  Hints,
-  isConstrainedModuleDefinition, LoadSchema, logErrorAndThrow,
-  LogExecutionContext,
-  LoggerAdapter,
-  ModuleDefinition, ModuleResolution
-} from '@franzzemen/hints';
+  isConstrainedModuleDefinition,
+  LoadSchema,
+  ModuleDefinition,
+  ModuleResolution
+} from '@franzzemen/module-factory';
 import {HintKey} from './hint-key.js';
 
 /**
