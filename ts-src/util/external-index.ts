@@ -1,3 +1,4 @@
+export * from './await-evaluation.js';
 export * from './escape-regex.js';
 export * from './enum-util.js';
 export * from './has-ref-name.js';
