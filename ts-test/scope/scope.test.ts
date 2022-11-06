@@ -245,14 +245,14 @@ describe('re-common tests', () => {
         }
       });
       it('should set root parent', () => {
-        const baseScope = new Scope({name: 'baseScope'});
-        const parent1 = new Scope({name: 'parent1'});
+        const baseScope = new Scope({common: {name: 'baseScope'}});
+        const parent1 = new Scope({common: {name: 'parent1'}});
         baseScope.setRootParent(parent1);
         baseScope.get(Scope.ParentScope).should.exist;
         parent1.get(Scope.ChildScopes).should.exist;
         parent1.get(Scope.ChildScopes).length.should.equal(1);
 
-        const parent2 = new Scope({name: 'parent2'});
+        const parent2 = new Scope({common: {name: 'parent2'}});
         baseScope.setRootParent(parent2);
         baseScope.getParentAtHeight(2).scopeName.should.equal('parent2');
       });

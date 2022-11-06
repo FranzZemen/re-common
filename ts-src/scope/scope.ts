@@ -13,7 +13,7 @@ import {v4} from 'uuid';
 import {RuleElementFactory} from '../rule-element-ref/rule-element-factory.js';
 import {RuleElementReference} from '../rule-element-ref/rule-element-reference.js';
 import {HasRefName} from '../util/has-ref-name.js';
-import {CommonOptions} from './common-execution-context.js';
+import {CommonOptions, ReCommon} from './common-execution-context.js';
 import {ScopedFactory} from './scoped-factory.js';
 
 
@@ -28,13 +28,13 @@ export class Scope extends Map<string, any> {
   protected moduleResolver = new ModuleResolver();
   private unsatisfiedRuleElementReferences: [refName: string, factoryName: string][] = [];
 
-  constructor(options?: CommonOptions, parentScope?: Scope, ec?: LogExecutionContext) {
+  constructor(reOptions?: ReCommon, parentScope?: Scope, ec?: LogExecutionContext) {
     super();
-    this.options = options ? options : {};
-    this.scopeName = options?.name ? options?.name : this.constructor.name + '-' + v4();
+    this.options = reOptions?.common ? reOptions.common : {};
+    this.scopeName = this.options.name ? this.options.name : this.constructor.name + '-' + v4();
     this.addParent(parentScope, ec);
-    if (options?.throwOnAsync !== undefined) {
-      this.throwOnAsync = options.throwOnAsync;
+    if (this.options.throwOnAsync !== undefined) {
+      this.throwOnAsync = this.options.throwOnAsync;
     }
   }
 
