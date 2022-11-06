@@ -6,7 +6,7 @@ import _ from 'lodash';
 import 'mocha';
 import {isPromise} from 'node:util/types';
 import {
-  ReCommonOptions,
+  CommonOptions,
   RuleElementFactory,
   RuleElementInstanceReference,
   RuleElementModuleReference,
@@ -257,16 +257,16 @@ describe('re-common tests', () => {
         baseScope.getParentAtHeight(2).scopeName.should.equal('parent2');
       });
       it('should merge into', () => {
-        let source: ReCommonOptions = {name: 'Source', throwOnAsync: false};
-        let target: ReCommonOptions = {name: 'Target'};
+        let source: CommonOptions = {name: 'Source', throwOnAsync: false};
+        let target: CommonOptions = {name: 'Target'};
         let merged = _.merge(target, source);
         merged.name.should.equal('Source');
         merged.throwOnAsync.should.exist;
         merged.throwOnAsync.should.be.false;
       });
       it('should merge new', () => {
-        let source: ReCommonOptions = {name: 'Source', throwOnAsync: false};
-        let target: ReCommonOptions = {name: 'Target'};
+        let source: CommonOptions = {name: 'Source', throwOnAsync: false};
+        let target: CommonOptions = {name: 'Target'};
         let merged = _.merge(target, source);
         merged.name.should.equal('Source');
         merged.throwOnAsync.should.be.false;

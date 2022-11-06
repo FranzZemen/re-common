@@ -13,7 +13,7 @@ import {v4} from 'uuid';
 import {RuleElementFactory} from '../rule-element-ref/rule-element-factory.js';
 import {RuleElementReference} from '../rule-element-ref/rule-element-reference.js';
 import {HasRefName} from '../util/has-ref-name.js';
-import {ReCommonOptions} from './re-common-execution-context.js';
+import {CommonOptions} from './common-execution-context.js';
 import {ScopedFactory} from './scoped-factory.js';
 
 
@@ -22,13 +22,13 @@ export class Scope extends Map<string, any> {
   public static ChildScopes = 'ChildScopes';
   public static ScopeName = 'ScopeName';
 
-  public options: ReCommonOptions;
+  public options: CommonOptions;
   public scopeName: string;
   public throwOnAsync = false;
   protected moduleResolver = new ModuleResolver();
   private unsatisfiedRuleElementReferences: [refName: string, factoryName: string][] = [];
 
-  constructor(options?: ReCommonOptions, parentScope?: Scope, ec?: LogExecutionContext) {
+  constructor(options?: CommonOptions, parentScope?: Scope, ec?: LogExecutionContext) {
     super();
     this.options = options ? options : {};
     this.scopeName = options?.name ? options?.name : this.constructor.name + '-' + v4();
