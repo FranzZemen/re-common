@@ -2,9 +2,9 @@
 Created by Franz Zemen 11/05/2022
 License Type: MIT
 */
-import {appSchemaWrapper} from '@franzzemen/app-execution-context';
-import {executionSchemaWrapper} from '@franzzemen/execution-context';
-import {LogExecutionContext, logSchemaWrapper} from '@franzzemen/logger-adapter';
+import {AppExecutionContextDefaults, appSchemaWrapper} from '@franzzemen/app-execution-context';
+import {ExecutionContextDefaults, executionSchemaWrapper} from '@franzzemen/execution-context';
+import {LogExecutionContext, LogExecutionContextDefaults, logSchemaWrapper} from '@franzzemen/logger-adapter';
 import Validator, {ValidationError} from 'fastest-validator';
 import {isPromise} from 'util/types';
 
@@ -13,12 +13,12 @@ export interface CommonOptions {
   throwOnAsync?: boolean;
 }
 
-export interface Common {
+export interface ReCommon {
   common?: CommonOptions
 }
 
 export interface CommonExecutionContext extends LogExecutionContext {
-  re?: Common
+  re?: ReCommon
 }
 
 export class CommonExecutionContextDefaults {
@@ -27,11 +27,14 @@ export class CommonExecutionContextDefaults {
     throwOnAsync: CommonExecutionContextDefaults.ThrowOnAsync
   }
 
-  static Common: Common = {
+  static ReCommon: ReCommon = {
     common: CommonExecutionContextDefaults.CommonOptions
   }
   static CommonExecutionContext = {
-    re: CommonExecutionContextDefaults.Common
+    execution: ExecutionContextDefaults.Execution(),
+    app: AppExecutionContextDefaults.App,
+    log: LogExecutionContextDefaults.Log,
+    re: CommonExecutionContextDefaults.ReCommon
   }
 }
 
@@ -54,7 +57,7 @@ const commonSchema = {
 export const commonSchemaWrapper = {
   type: 'object',
   optional: true,
-  default: CommonExecutionContextDefaults.Common,
+  default: CommonExecutionContextDefaults.ReCommon,
   props: commonSchema
 }
 
