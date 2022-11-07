@@ -33,10 +33,10 @@ export class Scope extends Map<string, any> {
   constructor(reOptions?: ReCommon, parentScope?: Scope, ec?: LogExecutionContext) {
     super();
     this._options = reOptions ? reOptions : {};
-    this.scopeName = this.options.common?.name ? this.options.common.name : this.constructor.name + '-' + v4();
+    this.scopeName = this.options['re-common']?.name ? this.options['re-common'].name : this.constructor.name + '-' + v4();
     this.addParent(parentScope, ec);
-    if (this.options.common?.throwOnAsync !== undefined) {
-      this.throwOnAsync = this.options.common.throwOnAsync;
+    if (this.options['re-common']?.throwOnAsync !== undefined) {
+      this.throwOnAsync = this.options['re-common'].throwOnAsync;
     }
   }
 

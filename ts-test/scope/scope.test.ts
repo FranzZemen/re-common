@@ -1,16 +1,17 @@
+import {inspect} from 'node:util';
 import {ModuleResolution} from '@franzzemen/module-factory';
 import {ModuleResolutionAction, ModuleResolutionActionInvocation} from '@franzzemen/module-resolver';
 import chai from 'chai';
 import Validator from 'fastest-validator';
-import _ from 'lodash';
 import 'mocha';
 import {isPromise} from 'node:util/types';
 import {
-  CommonOptions,
+  CommonExecutionContext,
   RuleElementFactory,
   RuleElementInstanceReference,
   RuleElementModuleReference,
-  Scope
+  Scope,
+  validate
 } from '../../publish/index.js';
 import {RuleElementImpl, RulesObjectImplFactory, RulesObjectImplI} from '../rule-element-ref/rule-element-impl.js';
 
@@ -245,33 +246,27 @@ describe('re-common tests', () => {
         }
       });
       it('should set root parent', () => {
-        const baseScope = new Scope({common: {name: 'baseScope'}});
-        const parent1 = new Scope({common: {name: 'parent1'}});
+        const baseScope = new Scope({'re-common': {name: 'baseScope'}});
+        const parent1 = new Scope({'re-common': {name: 'parent1'}});
         baseScope.setRootParent(parent1);
         baseScope.get(Scope.ParentScope).should.exist;
         parent1.get(Scope.ChildScopes).should.exist;
         parent1.get(Scope.ChildScopes).length.should.equal(1);
 
-        const parent2 = new Scope({common: {name: 'parent2'}});
+        const parent2 = new Scope({'re-common': {name: 'parent2'}});
         baseScope.setRootParent(parent2);
         baseScope.getParentAtHeight(2).scopeName.should.equal('parent2');
       });
-      it('should merge into', () => {
-        let source: CommonOptions = {name: 'Source', throwOnAsync: false};
-        let target: CommonOptions = {name: 'Target'};
-        let merged = _.merge(target, source);
-        merged.name.should.equal('Source');
-        merged.throwOnAsync.should.exist;
-        merged.throwOnAsync.should.be.false;
+      it('should validate', () => {
+        const ec: CommonExecutionContext = {};
+        const result = validate(ec);
+        if (true === result) {
+          console.log(inspect(ec, false, 10, true));
+        } else {
+          console.log(inspect(result, false, 10, true));
+        }
+        expect(result).to.equal(true);
       });
-      it('should merge new', () => {
-        let source: CommonOptions = {name: 'Source', throwOnAsync: false};
-        let target: CommonOptions = {name: 'Target'};
-        let merged = _.merge(target, source);
-        merged.name.should.equal('Source');
-        merged.throwOnAsync.should.be.false;
-      });
-
     });
   });
 });

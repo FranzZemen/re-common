@@ -14,7 +14,7 @@ export interface CommonOptions {
 }
 
 export interface ReCommon {
-  common?: CommonOptions
+  're-common'?: CommonOptions
 }
 
 export interface CommonExecutionContext extends LogExecutionContext {
@@ -28,7 +28,7 @@ export class CommonExecutionContextDefaults {
   }
 
   static ReCommon: ReCommon = {
-    common: CommonExecutionContextDefaults.CommonOptions
+    're-common': CommonExecutionContextDefaults.CommonOptions
   }
   static CommonExecutionContext = {
     execution: ExecutionContextDefaults.Execution(),
@@ -51,7 +51,7 @@ export const commonOptionsSchemaWrapper = {
 }
 
 export const reCommonSchema = {
-  common: commonOptionsSchemaWrapper
+  're-common': commonOptionsSchemaWrapper
 }
 
 export const reCommonSchemaWrapper = {
