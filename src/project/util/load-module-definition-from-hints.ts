@@ -1,11 +1,10 @@
-import {logErrorAndThrow} from '@franzzemen/enhanced-error';
+import {logErrorAndReturn} from '@franzzemen/enhanced-error';
 import {Hints} from '@franzzemen/hints';
 import {LogExecutionContext, LoggerAdapter} from '@franzzemen/logger-adapter';
 import {
   isConstrainedModuleDefinition,
   LoadSchema,
-  ModuleDefinition,
-  ModuleResolution
+  ModuleDefinition
 } from '@franzzemen/module-factory';
 import {HintKey} from './hint-key.js';
 
@@ -73,7 +72,7 @@ export function loadModuleDefinitionFromHints(
           }
         } catch (err) {
           log.warn(json, `Expected JSON for ${HintKey.Module} hint`);
-          logErrorAndThrow(err, log);
+          throw logErrorAndReturn(err as unknown as Error, log);
         }
       }
     }
@@ -85,11 +84,10 @@ export function loadModuleDefinitionFromHints(
       const constructorName = hints.get(moduleConstructorNameKey) as string;
       if (functionName && constructorName) {
         const err = new Error(`Both function name ${functionName} and constructor name ${constructorName} provided, only one should be`);
-        logErrorAndThrow(err, log);
+        throw logErrorAndReturn(err, log);
       }
-      const moduleResolution = hints.get(moduleResolutionKey) as ModuleResolution;
       const loadSchema = hints.get(loadSchemaKey) as LoadSchema;
-      module = {moduleName, functionName, constructorName, moduleResolution, loadSchema};
+      module = {moduleName, functionName, constructorName, loadSchema};
       // Put back in hints in order to have it there as the preferred view
       hints.set(moduleKey, module);
     }

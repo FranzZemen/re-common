@@ -1,11 +1,12 @@
 {
   "name": "@franzzemen/re-common",
-  "version": "10.4.7",
+  "version": "10.4.8",
   "description": "Common re elements",
   "type": "module",
-  "main": "index.js",
-  "scripts": {
-    "test": "gulp"
+  "exports": {
+    ".": {
+      "import": "./src/project/index.ts"
+    }
   },
   "repository": {
     "type": "git",
@@ -18,26 +19,25 @@
   },
   "homepage": "https://github.com/FranzZemen/re-common#readme",
   "devDependencies": {
-    "@franzzemen/gulp-base": "^12.1.1",
-    "@franzzemen/npmu": "^2.0.18",
-    "@types/chai": "^4.3.3",
-    "@types/lodash": "^4.14.188",
-    "@types/mocha": "^10.0.0",
-    "chai": "^4.3.6",
-    "gulp": "^4.0.2",
-    "gulp-mocha": "^8.0.0",
-    "mocha": "^10.1.0",
-    "typescript": "^4.8.4"
+    "@franzzemen/npmu": "^6.0.2",
+    "@types/chai": "^5.0.0",
+    "@types/lodash": "^4.17.10",
+    "@types/mocha": "^10.0.9",
+    "@types/uuid": "^10.0.0",
+    "chai": "^5.1.1",
+    "mocha": "^10.7.3",
+    "typescript": "^5.6.3"
   },
   "dependencies": {
-    "@franzzemen/app-execution-context": "^2.1.1",
-    "@franzzemen/enhanced-error": "^1.2.0",
-    "@franzzemen/execution-context": "^2.0.4",
-    "@franzzemen/hints": "^1.1.2",
-    "@franzzemen/logger-adapter": "^4.3.0",
-    "@franzzemen/module-factory": "^1.0.5",
-    "@franzzemen/module-resolver": "^1.1.0",
-    "fastest-validator": "^1.15.0",
-    "lodash": "^4.17.21"
+    "@franzzemen/build-system": "^12.1.1",
+    "@franzzemen/enhanced-error": "^6.0.0",
+    "@franzzemen/execution-context": "^12.0.16",
+    "@franzzemen/hints": "^4.0.1",
+    "@franzzemen/logger-adapter": "^14.0.18",
+    "@franzzemen/module-factory": "^10.0.7",
+    "@franzzemen/module-resolver": "^5.0.1",
+    "fastest-validator": "^1.19.0",
+    "lodash": "^4.17.21",
+    "uuid": "^10.0.0"
   }
 }

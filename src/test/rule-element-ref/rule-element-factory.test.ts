@@ -1,8 +1,9 @@
-import {ModuleResolution} from '@franzzemen/module-factory';
 import chai from 'chai';
 import 'mocha';
 import {isPromise} from 'node:util/types';
-import {RuleElementReference} from '../../publish/index.js';
+// @ts-ignore
+import {RuleElementReference}  from '@franzzemen/re-common';
+
 
 import {RuleElementImpl, RulesObjectImplFactory, RulesObjectImplI} from './rule-element-impl.js';
 
@@ -18,9 +19,8 @@ describe('re-common tests', () => {
       moduleRef: {
         refName: 'impl',
         module: {
-          moduleName: '../../../testing/rule-element-ref/rule-element-impl.js',
+          moduleName: './testing/rule-element-ref/rule-element-impl.js',
           constructorName: 'RuleElementImpl',
-          moduleResolution: ModuleResolution.es,
           paramsArray: ['hello']
         }
       },

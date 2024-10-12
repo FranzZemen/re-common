@@ -1,7 +1,4 @@
 import {ExecutionContext} from '@franzzemen/execution-context';
-import chai from 'chai';
-import 'mocha';
-import {isPromise} from 'node:util/types';
 import {
   Fragment,
   FragmentParser,
@@ -11,7 +8,10 @@ import {
   RecursiveGroupingParser,
   ResolvedRecursiveGroupingParseResult,
   Scope
-} from '../../../publish/index.js';
+} from '../../../publish/mjs/index.js'
+import chai from 'chai';
+import 'mocha';
+import {isPromise} from 'node:util/types';
 
 
 const expect = chai.expect;

@@ -1,8 +1,8 @@
 import {EnhancedError, logErrorAndReturn, logErrorAndThrow} from '@franzzemen/enhanced-error';
 import {Hints} from '@franzzemen/hints';
-import {LogExecutionContext, LoggerAdapter} from '@franzzemen/logger-adapter';
+import {LoggerAdapter} from '@franzzemen/logger-adapter';
 import {
-  LoadPackageType,
+  FactoryType,
   ModuleResolutionAction,
   ModuleResolutionResult,
   ModuleResolutionSetterInvocation,
@@ -15,6 +15,7 @@ import {RuleElementReference} from '../rule-element-ref/rule-element-reference.j
 import {HasRefName} from '../util/has-ref-name.js';
 import {ReCommon} from './common-execution-context.js';
 import {ScopedFactory} from './scoped-factory.js';
+import {ExecutionContext} from '@franzzemen/execution-context';
 
 
 export class Scope extends Map<string, any> {
@@ -30,7 +31,7 @@ export class Scope extends Map<string, any> {
 
 
 
-  constructor(reOptions?: ReCommon, parentScope?: Scope, ec?: LogExecutionContext) {
+  constructor(reOptions?: ReCommon, parentScope?: Scope, ec?: ExecutionContext) {
     super();
     this._options = reOptions ? reOptions : {};
     this.scopeName = this.options['re-common']?.name ? this.options['re-common'].name : this.constructor.name + '-' + v4();
@@ -50,7 +51,7 @@ export class Scope extends Map<string, any> {
    * @param scope
    * @param ec
    */
-  static resolve(scope: Scope, ec?: LogExecutionContext): true | Promise<true> {
+  static resolve(scope: Scope, ec?: ExecutionContext): true | Promise<true> {
     const childScopes = scope.get(Scope.ChildScopes) as Scope[];
     if (childScopes && childScopes.length > 0) {
       let reverse = childScopes.filter(child => true);
@@ -77,13 +78,13 @@ export class Scope extends Map<string, any> {
     }
   }
 
-  private static clearResolutions(scope): Scope {
+  private static clearResolutions(scope: Scope): Scope {
     scope.moduleResolver.clear();
     scope.unsatisfiedRuleElementReferences = [];
     return scope;
   }
 
-  private static satisfyUnsatisfiedRuleElementReferences(scope: Scope, ec?: LogExecutionContext): true {
+  private static satisfyUnsatisfiedRuleElementReferences(scope: Scope, ec?: ExecutionContext): true {
     if (scope.unsatisfiedRuleElementReferences.length > 0) {
       for (let i = scope.unsatisfiedRuleElementReferences.length - 1; i >= 0; i--) {
         let [refName, factoryName] = scope.unsatisfiedRuleElementReferences[i];
@@ -103,7 +104,7 @@ export class Scope extends Map<string, any> {
     }
   }
 
-  private static resolveLocal(scope: Scope, ec?: LogExecutionContext): true | Promise<true> {
+  private static resolveLocal(scope: Scope, ec?: ExecutionContext): true | Promise<true> {
 
     if (scope.moduleResolver.hasPendingResolutions()) {
       const resultsOrPromises = scope.moduleResolver.resolve(ec);
@@ -136,7 +137,7 @@ export class Scope extends Map<string, any> {
     return !this.moduleResolver.hasPendingResolutions();
   }
 
-  addUnsatisfiedRuleElementReference(refName: string, factoryName: string, ec?: LogExecutionContext) {
+  addUnsatisfiedRuleElementReference(refName: string, factoryName: string, ec?: ExecutionContext) {
     const hasUnsatisfiedReference = this.unsatisfiedRuleElementReferences.some(unsatisfiedRuleElementReference => unsatisfiedRuleElementReference[0] === refName && unsatisfiedRuleElementReference[1] === factoryName);
     if (!hasUnsatisfiedReference) {
       this.unsatisfiedRuleElementReferences.push([refName, factoryName]);
@@ -151,15 +152,15 @@ export class Scope extends Map<string, any> {
    * @param ec
    * @return new text minus hints if applicable, and the Hints
    */
-  parseHints(near: string, prefix: string, ec?: LogExecutionContext): [string, Hints] {
+  parseHints(near: string, prefix: string, ec?: ExecutionContext): [string, Hints] {
     return Hints.parseHints(this.moduleResolver, near, prefix, ec);
   }
 
-  getRuleElementItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: LogExecutionContext): C {
+  getRuleElementItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContext): C {
     return this.getScopedFactoryItem(refName, factoryKey, searchParent, ec);
   }
 
-  getScopedFactoryItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: LogExecutionContext): C {
+  getScopedFactoryItem<C>(refName: string, factoryKey: string, searchParent = true, ec?: ExecutionContext): C {
     const factory: ScopedFactory<C> = this.get(factoryKey);
     const c = factory.getRegistered(refName, ec);
     if (c) {
@@ -191,10 +192,10 @@ export class Scope extends Map<string, any> {
       factory = this.get(factory) as RuleElementFactory<any>;
     }
     factory.register({instanceRef: {refName, instance}, moduleRef: {refName, module: result.resolution.loader.module}});
-    return true;
+    return Promise.resolve(true);
   };
 
-  addRuleElementReferenceItem<C>(ruleElementRef: RuleElementReference<C>, factoryKey: string | RuleElementFactory<any>, action?: ModuleResolutionAction, ec?: LogExecutionContext): C {
+  addRuleElementReferenceItem<C>(ruleElementRef: RuleElementReference<C>, factoryKey: string | RuleElementFactory<any>, action?: ModuleResolutionAction, ec?: ExecutionContext): C {
     const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReferenceItem');
     let factory: RuleElementFactory<any>;
     if (typeof factoryKey === 'string') {
@@ -216,7 +217,7 @@ export class Scope extends Map<string, any> {
    * @param actions
    * @param ec
    */
-  addRuleElementReferenceItems<C>(ruleElementRefs: RuleElementReference<C>[], factoryKey: string | RuleElementFactory<any>, actions?: ModuleResolutionAction[], ec?: LogExecutionContext): C[] {
+  addRuleElementReferenceItems<C>(ruleElementRefs: RuleElementReference<C>[], factoryKey: string | RuleElementFactory<any>, actions?: ModuleResolutionAction[], ec?: ExecutionContext): C[] {
     const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReferenceItems');
     let factory: RuleElementFactory<any>;
     if (typeof factoryKey === 'string') {
@@ -235,7 +236,7 @@ export class Scope extends Map<string, any> {
     }
   }
 
-  removeScopedFactoryItem<C extends HasRefName>(refNames: string [], factoryKey: string, override = false, overrideDown = false, ec?: LogExecutionContext): Scope {
+  removeScopedFactoryItem<C extends HasRefName>(refNames: string [], factoryKey: string, override = false, overrideDown = false, ec?: ExecutionContext): Scope {
     let scope = this;
     do {
       scope.removeScopedFactoryItemsInScope(refNames, factoryKey, ec);
@@ -250,7 +251,7 @@ export class Scope extends Map<string, any> {
    * Get the dept of the scope
    * @param execContext
    */
-  getScopeDepth(execContext?: LogExecutionContext): number {
+  getScopeDepth(execContext?: ExecutionContext): number {
     let depth = 0;
     let scope = this;
     while ((scope = scope.get(Scope.ParentScope)) !== undefined) {
@@ -259,7 +260,7 @@ export class Scope extends Map<string, any> {
     return depth;
   }
 
-  getParentAtHeight(height: number, execContext?: LogExecutionContext): Scope {
+  getParentAtHeight(height: number, execContext?: ExecutionContext): Scope {
     let parent: Scope;
     for (let i = 0; i < height; i++) {
       if (i === 0) {
@@ -272,7 +273,7 @@ export class Scope extends Map<string, any> {
     return parent;
   }
 
-  hasScopedFactoryItem<C>(refName: string, factoryKey: string, ec?: LogExecutionContext): boolean {
+  hasScopedFactoryItem<C>(refName: string, factoryKey: string, ec?: ExecutionContext): boolean {
     const factory = this.get(factoryKey);
     if (factory.hasRegistered(refName, ec)) {
       return true;
@@ -318,7 +319,7 @@ export class Scope extends Map<string, any> {
    ** @param parentScope
    * @param ec
    */
-  reParent(parentScope: Scope, ec?: LogExecutionContext): Scope {
+  reParent(parentScope?: Scope, ec?: ExecutionContext): Scope {
     if (parentScope) {
       this.removeParent(ec);
       parentScope.addChild(this, ec);
@@ -328,7 +329,7 @@ export class Scope extends Map<string, any> {
 
   // Are two scopes (reasonably) the same?  This is not fully exact.
 
-  setRootParent(rootParent: Scope, ec?: LogExecutionContext): Scope {
+  setRootParent(rootParent: Scope, ec?: ExecutionContext): Scope {
     let scope: Scope = this;
     let parentScope: Scope;
     while ((parentScope = scope.get(Scope.ParentScope))) {
@@ -346,7 +347,7 @@ export class Scope extends Map<string, any> {
    * @param parent
    * @param ec
    */
-  addParent(parent: Scope, ec?: LogExecutionContext): Scope {
+  addParent(parent?: Scope, ec?: ExecutionContext): Scope {
     return this.reParent(parent, ec);
   }
 
@@ -356,7 +357,7 @@ export class Scope extends Map<string, any> {
    * @param ec
    * @return Returns this
    */
-  addChild(child: Scope, ec?: LogExecutionContext): Scope {
+  addChild(child: Scope, ec?: ExecutionContext): Scope {
     let childScopes: Scope [] = this.get(Scope.ChildScopes);
     if (!childScopes) {
       childScopes = [];
@@ -374,7 +375,7 @@ export class Scope extends Map<string, any> {
     return this;
   }
 
-  removeParent(ec?: LogExecutionContext): Scope {
+  removeParent(ec?: ExecutionContext): Scope {
     const existingParent = this.get(Scope.ParentScope);
     if (existingParent) {
       const parentChildScopes: Scope[] = existingParent.get(Scope.ChildScopes);
@@ -394,7 +395,7 @@ export class Scope extends Map<string, any> {
 
 
 
-  protected addRuleElementReferenceItemResolution<C>(ruleElementRef: RuleElementReference<C>, factory: string | RuleElementFactory<any>, action?: ModuleResolutionAction, ec?: LogExecutionContext): Scope {
+  protected addRuleElementReferenceItemResolution<C>(ruleElementRef: RuleElementReference<C>, factory: string | RuleElementFactory<any>, action?: ModuleResolutionAction, ec?: ExecutionContext): Scope {
     const log = new LoggerAdapter(ec, 're-common', 'scope', 'addRuleElementReferenceItemResolution');
     if (ruleElementRef.moduleRef === undefined) {
       logErrorAndThrow(new EnhancedError('Undefined moduleRef'), log);
@@ -403,7 +404,7 @@ export class Scope extends Map<string, any> {
         refName: ruleElementRef.moduleRef.refName,
         loader: {
           module: ruleElementRef.moduleRef.module,
-          loadPackageType: LoadPackageType.package
+          factoryType: FactoryType.moduleFactoryFunction
         },
         setter: {
           ownerIsObject: true,
@@ -428,7 +429,7 @@ export class Scope extends Map<string, any> {
     return this;
   }
 
-  private removeScopedFactoryItemsInScope<C>(refNames: string[], factoryKey: string, ec: LogExecutionContext): Scope {
+  private removeScopedFactoryItemsInScope<C>(refNames: string[], factoryKey: string, ec: ExecutionContext): Scope {
     const factory: ScopedFactory<C> = this.get(factoryKey);
     refNames.forEach(refName => {
       if (factory.hasRegistered(refName, ec)) {
@@ -438,7 +439,7 @@ export class Scope extends Map<string, any> {
     return this;
   }
   /*
-  loadPendingResolutionsFromReferences(ref: any | RuleElementReference<any>, factory?: string, action?: ModuleResolutionAction, ec?: LogExecutionContext) {
+  loadPendingResolutionsFromReferences(ref: any | RuleElementReference<any>, factory?: string, action?: ModuleResolutionAction, ec?: ExecutionContext) {
     if (this.moduleResolver.isResolving) {
       logErrorAndThrow(`Cannot load while resolving`, new LoggerAdapter(ec, 're-common', 'scope', 'loadPendingResolutionsFromReferences'));
     }

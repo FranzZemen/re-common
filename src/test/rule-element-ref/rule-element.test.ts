@@ -1,9 +1,6 @@
+import {isRuleElementModuleReference, RuleElementModuleReference} from '../../publish/mjs/index.js'
 import chai from 'chai';
 import 'mocha';
-import {
-  isRuleElementModuleReference,
-  RuleElementModuleReference
-} from '../../publish/index.js'
 
 
 let should = chai.should();

@@ -10,4 +10,4 @@
  */
 import {LogExecutionContext} from '@franzzemen/logger-adapter';
 
-export type AwaitEvaluation = (dataDomain: any, scope: Map<string, any>, ec?: LogExecutionContext, ...params) => Promise<any> | any;
+export type AwaitEvaluation = (dataDomain: any, scope: Map<string, any>, ec?: LogExecutionContext, ...params: any[]) => Promise<any> | any;

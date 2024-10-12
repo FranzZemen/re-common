@@ -1,4 +1,4 @@
-import {HasRefName} from '../../publish/index.js';
+import {HasRefName} from '../../publish/mjs/index.js'
 
 export class TestParser implements HasRefName {
   id: number;

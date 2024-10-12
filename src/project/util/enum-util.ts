@@ -1,4 +1,4 @@
-export function reverseEnumerationToSet (theEnum): Set<string> {
+export function reverseEnumerationToSet (theEnum: any): Set<string> {
   const stringSet = new Set<string>();
   Object.keys(theEnum).forEach(key => {
     stringSet.add(key);

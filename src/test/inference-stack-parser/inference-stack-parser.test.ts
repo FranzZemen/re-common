@@ -1,9 +1,9 @@
 import {LogExecutionContext} from '@franzzemen/logger-adapter';
-import {ModuleResolution} from '@franzzemen/module-factory';
 import chai from 'chai';
 import Validator from 'fastest-validator';
 import 'mocha';
-import {InferenceStackParser, RuleElementModuleReference} from '../../publish/index.js';
+
+import {InferenceStackParser, RuleElementModuleReference} from '@franzzemen/decisioning';
 import {TestParser} from './test-parser.js';
 
 const expect = chai.expect;
@@ -16,7 +16,7 @@ describe('re-commont tests', () => {
     describe('inference-stack-parser tests', () => {
       // Test class to test aba\stract base class functionality
       class TestInferenceStackParser extends InferenceStackParser<TestParser> {
-        // We're not actually testing parsing so leave as is.
+        // We're not actually testing parsing so leave as is.C
         parse(remaining: string, scope: Map<string, any>, inferredContext: any, execContext: LogExecutionContext | undefined): [string, any] {
           return ['', undefined];
         }
@@ -124,7 +124,6 @@ describe('re-commont tests', () => {
           module: {
             moduleName: '../../../testing/inference-stack-parser/custom-parser.cjs',
             constructorName: 'CustomParser',
-            moduleResolution: ModuleResolution.commonjs,
             loadSchema: {
               useNewCheckerFunction: true,
               validationSchema: {
@@ -145,7 +144,6 @@ describe('re-commont tests', () => {
           module: {
             moduleName: '../../../testing/inference-stack-parser/custom-parser.cjs',
             constructorName: 'CustomParser',
-            moduleResolution: ModuleResolution.commonjs,
             loadSchema: {
               useNewCheckerFunction: true,
               validationSchema: {
@@ -173,7 +171,6 @@ describe('re-commont tests', () => {
           module: {
             moduleName: '../../../testing/inference-stack-parser/custom-parser.cjs',
             constructorName: 'CustomParser',
-            moduleResolution: ModuleResolution.commonjs,
             loadSchema: check
           }
         }
@@ -189,7 +186,6 @@ describe('re-commont tests', () => {
           module: {
             moduleName: '../../../testing/inference-stack-parser/custom-parser.cjs',
             constructorName: 'CustomParser',
-            moduleResolution: ModuleResolution.commonjs,
             loadSchema: {
               useNewCheckerFunction: true,
               validationSchema: {

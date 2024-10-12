@@ -1,5 +1,4 @@
 import {inspect} from 'node:util';
-import {ModuleResolution} from '@franzzemen/module-factory';
 import {ModuleResolutionAction, ModuleResolutionActionInvocation} from '@franzzemen/module-resolver';
 import chai from 'chai';
 import Validator from 'fastest-validator';
@@ -12,7 +11,7 @@ import {
   RuleElementModuleReference,
   Scope,
   validate
-} from '../../publish/index.js';
+} from '../../publish/mjs/index.js'
 import {RuleElementImpl, RulesObjectImplFactory, RulesObjectImplI} from '../rule-element-ref/rule-element-impl.js';
 
 const expect = chai.expect;
@@ -156,7 +155,6 @@ describe('re-common tests', () => {
           module: {
             moduleName: '../../../testing/rule-element-ref/rule-element-impl.js',
             constructorName: 'RuleElementImpl',
-            moduleResolution: ModuleResolution.es,
             paramsArray: ['First'],
             loadSchema: {
               useNewCheckerFunction: true,
@@ -174,7 +172,6 @@ describe('re-common tests', () => {
           module: {
             moduleName: '../../../testing/rule-element-ref/rule-element-impl.js',
             constructorName: 'RuleElementImpl',
-            moduleResolution: ModuleResolution.es,
             paramsArray: ['Second'],
             loadSchema: (new Validator()).compile({
               refName: {type: 'string'},
@@ -195,7 +192,7 @@ describe('re-common tests', () => {
           setMine: ModuleResolutionActionInvocation = (successfulResolution: boolean, factoryName: string, ec) => {
             const factory = scope.get(factoryName) as RulesObjectImplFactory;
             this.mine = factory.getRegistered(this.refName, ec);
-            return true;
+            return Promise.resolve(true);
           };
         }
 

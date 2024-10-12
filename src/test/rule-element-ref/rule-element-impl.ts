@@ -1,4 +1,4 @@
-import {RuleElementFactory, RuleElementReference} from '../../publish/index.js';
+import {RuleElementFactory, RuleElementReference} from '../../publish/mjs/index.js'
 
 
 export interface RulesObjectImplI {
